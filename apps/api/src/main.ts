@@ -1,9 +1,16 @@
 import 'reflect-metadata';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { configureApp } from './bootstrap';
 import { loadEnv } from './config/env';
+
+// Local development: load the repository-root .env. In production, variables come
+// from the platform's secret manager and no .env file exists.
+const rootEnv = join(__dirname, '..', '..', '..', '.env');
+if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 async function bootstrap(): Promise<void> {
   const env = loadEnv();

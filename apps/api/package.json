@@ -4,23 +4,39 @@
   "private": true,
   "description": "SeShaKart REST API (NestJS).",
   "files": [
-    "dist"
+    "dist",
+    "prisma"
   ],
   "scripts": {
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "jest"
+    "test": "jest --runInBand",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "node --env-file-if-exists=../../.env ./node_modules/prisma/build/index.js migrate dev",
+    "prisma:deploy": "node --env-file-if-exists=../../.env ./node_modules/prisma/build/index.js migrate deploy",
+    "prisma:studio": "node --env-file-if-exists=../../.env ./node_modules/prisma/build/index.js studio",
+    "seed": "node --env-file-if-exists=../../.env dist/database/seed.js",
+    "pretest": "prisma generate",
+    "pretypecheck": "prisma generate",
+    "prisma:check": "node --env-file-if-exists=../../.env ./node_modules/prisma/build/index.js migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url \"$SHADOW_DATABASE_URL\" --exit-code",
+    "migrate:production": "prisma migrate deploy",
+    "seed:production": "node dist/database/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/throttler": "^6.4.0",
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "6.19.3",
     "@seshakart/types": "workspace:*",
     "@seshakart/validation": "workspace:*",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.2",
+    "prisma": "6.19.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^3.25.76"
@@ -30,6 +46,7 @@
     "@nestjs/testing": "^11.1.6",
     "@seshakart/eslint-config": "workspace:*",
     "@seshakart/tsconfig": "workspace:*",
+    "@swc-node/register": "^1.12.1",
     "@swc/core": "^1.13.5",
     "@swc/jest": "^0.2.39",
     "@types/express": "^5.0.3",

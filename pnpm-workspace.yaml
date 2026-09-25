@@ -4,6 +4,10 @@ packages:
 
 onlyBuiltDependencies:
   - '@nestjs/core'
+  - '@node-rs/argon2'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
   - '@swc/core'
   - esbuild
   - sharp

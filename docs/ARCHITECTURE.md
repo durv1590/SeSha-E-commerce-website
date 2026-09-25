@@ -50,13 +50,18 @@
 | 13  | **Native `<dialog>` for modals and drawers; no UI library**                                                       | The browser provides the focus trap, inert background and top-layer stacking. This saves roughly 30 KB of JavaScript compared with headless-UI libraries.                                         |
 | 14  | **Accent (orange) buttons use navy text**                                                                         | White on orange is 2.4:1 and fails WCAG AA. See BRAND_DESIGN_SYSTEM.md §3.                                                                                                                        |
 | 15  | **`@seshakart/ui` ships TypeScript source** (`transpilePackages`), unlike the built `types`/`validation` packages | Only the Next.js app consumes it, so a build step would add nothing. The API never imports UI code.                                                                                               |
+| 16  | **Database constraints as the last line of defence** (CHECKs for stock, prices and order totals)                  | Money and stock rules hold even if application code has a bug or someone writes to the database directly.                                                                                         |
+| 17  | **Redis optional locally, mandatory in production**                                                               | Contributors can run the API with only PostgreSQL. Production gets shared cache and rate limits across instances. Env validation enforces this at boot.                                           |
+| 18  | **Cache failures degrade, never break**                                                                           | If Redis is unavailable, `CacheService` falls through to the database and the throttler keeps working. Readiness reports `redis: down`.                                                           |
+| 19  | **Settings in the database, validated by shared Zod schemas**                                                     | Shipping fees, COD rules and store details are admin-editable without a deploy. A corrupt row falls back to defaults rather than breaking checkout.                                               |
 
 ## Request lifecycle (API)
 
 1. The `requestId` middleware assigns or propagates `X-Request-Id`.
 2. Helmet applies security headers. The API serves JSON only, so its CSP is `default-src 'none'`.
 3. CORS allows only the storefront origin and any configured extra origins.
-4. (Phase 3+) Rate limiting, then authentication, then permission guards.
+4. Rate limiting per client IP (Redis-backed, atomic Lua counter; `/health` exempt), then
+   authentication and permission guards (Phase 4).
 5. The controller runs, and pipes validate input against the Zod schemas.
 6. `EnvelopeInterceptor` wraps the result as `{ data }`. Errors pass through `AllExceptionsFilter`.
 
@@ -95,3 +100,31 @@ checks responsive behaviour, and records decisions here.
 - Bugs found and fixed during QA: star ratings filled each star with the same fraction; custom
   font-size classes dropped the button font weight; `₹499.5` is now formatted as `₹499.50`;
   link buttons were below the 24 px target size; product badges overlapped the wishlist button at 320 px.
+
+### Phase 3: database and backend foundation ✅
+
+- A Prisma schema covering 38 tables and 22 enums across identity, catalogue, inventory, cart,
+  wishlist, orders, payments, refunds, webhooks, shipping, returns, coupons, reviews, Q&A, notifications
+  and content, plus admin audit and settings.
+- Two migrations: the generated schema plus hand-written SQL (27 CHECK constraints, partial unique
+  indexes, full-text and trigram search indexes, and the order-number sequence). The drift check
+  (`pnpm db:check`) runs in CI.
+- NestJS infrastructure:
+  - `PrismaService`, with slow-query logging.
+  - `RedisService`, with graceful fallback and reconnect.
+  - `CacheService`, with stampede protection and prefix invalidation.
+  - Redis-backed rate limiting.
+  - The Zod validation pipe (`@ZodBody`, `@ZodQuery`, `@ZodParam`), which strips unknown fields.
+  - Mapping of database errors to safe API errors.
+  - `AuditService` and `SettingsService`.
+  - `/health` (liveness) and `/health/ready` (database and Redis readiness).
+- Seed: default settings plus the first super admin (argon2id, idempotent).
+- Tests (66 API tests):
+  - The database constraints, including a concurrent-oversell race.
+  - Validation, error mapping, rate limiting (in-memory and shared across two instances via Redis),
+    the cache and the seed.
+  - A shared-enum/schema parity test.
+- Findings:
+  - Nest guards don't run for unmatched routes, so floods against unknown URLs must be absorbed at the
+    edge (Cloudflare rate limiting). This will be documented in SECURITY.md.
+  - The default `pg_trgm` threshold misses short-word typos; search uses an explicit 0.5.

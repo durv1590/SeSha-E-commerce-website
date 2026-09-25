@@ -7,8 +7,11 @@ services:
       POSTGRES_USER: seshakart
       POSTGRES_PASSWORD: seshakart
       POSTGRES_DB: seshakart
+    # Also creates seshakart_test and seshakart_shadow (tests and drift check).
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     ports: ['5432:5432']
-    volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U seshakart']
       interval: 5s

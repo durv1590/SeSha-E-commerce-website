@@ -16,7 +16,28 @@ jobs:
   verify:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: seshakart
+          POSTGRES_PASSWORD: seshakart
+          POSTGRES_DB: seshakart_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U seshakart" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgresql://seshakart:seshakart@localhost:5432/seshakart_test?schema=public
+      TEST_DATABASE_URL: postgresql://seshakart:seshakart@localhost:5432/seshakart_test?schema=public
+      SHADOW_DATABASE_URL: postgresql://seshakart:seshakart@localhost:5432/seshakart_shadow
+      TEST_REDIS_URL: redis://localhost:6379/15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,12 +47,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - name: Create shadow database for the migration drift check
+        run: PGPASSWORD=seshakart psql -h localhost -U seshakart -d seshakart_test -c 'CREATE DATABASE seshakart_shadow'
+      - name: Migrations match schema.prisma (no drift)
+        run: pnpm db:check
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
 
   docker:
     name: Docker images build
