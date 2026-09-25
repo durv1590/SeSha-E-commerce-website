@@ -1,0 +1,35 @@
+import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
+import { requestId } from './common/middleware/request-id.middleware';
+import { allowedOrigins, type Env } from './config/env';
+
+export const API_PREFIX = 'api';
+
+/**
+ * Applies cross-cutting HTTP configuration. Shared by main.ts and the integration
+ * tests so tests exercise exactly the production middleware stack.
+ */
+export function configureApp(app: INestApplication, env: Env): void {
+  const express = app as NestExpressApplication;
+  express.disable('x-powered-by');
+  if (env.TRUST_PROXY_HOPS > 0) express.set('trust proxy', env.TRUST_PROXY_HOPS);
+
+  app.use(requestId);
+  // The API only serves JSON, so it can use a very strict CSP.
+  app.use(
+    helmet({
+      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+      crossOriginResourcePolicy: { policy: 'same-site' },
+    }),
+  );
+  app.enableCors({
+    origin: allowedOrigins(env),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'X-CSRF-Token'],
+    maxAge: 600,
+  });
+  app.setGlobalPrefix(API_PREFIX);
+  app.enableShutdownHooks();
+}

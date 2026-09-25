@@ -1,0 +1,22 @@
+{
+  "name": "@seshakart/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared domain types and API contracts for SeShaKart clients (web, mobile) and the API.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@seshakart/eslint-config": "workspace:*",
+    "@seshakart/tsconfig": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "~5.8.3"
+  }
+}

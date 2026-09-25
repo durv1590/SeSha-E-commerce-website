@@ -1,0 +1,41 @@
+# Full stack in containers (production-like). Secrets come from an env file that
+# is NOT committed:  docker compose -f infra/docker-compose.yml --env-file .env.production up -d
+name: seshakart
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-seshakart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-seshakart}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-seshakart}']
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes: [redisdata:/data]
+    restart: unless-stopped
+  api:
+    build: { context: .., dockerfile: infra/docker/api.Dockerfile }
+    env_file: ${ENV_FILE:-../.env.production}
+    environment:
+      API_PORT: 4000
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    restart: unless-stopped
+  web:
+    build: { context: .., dockerfile: infra/docker/web.Dockerfile }
+    env_file: ${ENV_FILE:-../.env.production}
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    ports: ['3000:3000']
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  pgdata:
+  redisdata:
