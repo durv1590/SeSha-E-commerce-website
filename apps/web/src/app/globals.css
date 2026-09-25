@@ -1,3 +1,65 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Global base styles. Design values come from CSS variables generated from
+ * packages/ui/src/tokens.ts by the Tailwind preset — no raw colours here.
+ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: 5rem; /* keep anchored headings clear of the sticky header */
+  }
+
+  body {
+    @apply bg-background font-body text-body text-text-primary antialiased;
+    min-height: 100dvh;
+    overflow-x: clip; /* guard against accidental horizontal scroll on mobile */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-heading text-text-primary;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    @apply text-primary underline-offset-4;
+  }
+
+  /* One consistent, clearly visible keyboard focus indicator (WCAG 2.4.7 / 2.4.11). */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-focus;
+  }
+
+  ::selection {
+    @apply bg-primary-light text-navy;
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+}
+
+/* Respect users who ask for less motion: keep state changes, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,11 +1,11 @@
+import seshakartPreset from '@seshakart/ui/tailwind-preset';
 import type { Config } from 'tailwindcss';
 
-// Phase 1 baseline. The full SeShaKart design-token system (colours, type scale,
-// spacing, radii, shadows) is introduced in Phase 2 — see docs/BRAND_DESIGN_SYSTEM.md.
+// All design values come from the shared SeShaKart preset (packages/ui/src/tokens.ts).
+// Do not add raw colours or sizes here — extend the tokens instead.
 const config: Config = {
-  content: ['./src/**/*.{ts,tsx}'],
-  theme: { extend: {} },
-  plugins: [],
+  presets: [seshakartPreset as Config],
+  content: ['./src/**/*.{ts,tsx}', '../../packages/ui/src/**/*.{ts,tsx}'],
 };
 
 export default config;

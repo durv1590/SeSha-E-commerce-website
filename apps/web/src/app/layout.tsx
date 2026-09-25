@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { colors } from '@seshakart/ui/tokens';
+import { inter, montserrat } from './fonts';
 import './globals.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.seshakart.com';
@@ -15,11 +17,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: colors.navy,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-IN">
+    <html lang="en-IN" className={`${montserrat.variable} ${inter.variable}`}>
       <body>{children}</body>
     </html>
   );

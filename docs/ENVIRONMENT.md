@@ -11,11 +11,12 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## Web (`apps/web`)
 
-| Variable               | Required | Default                     | Description                                                                 |
-| ---------------------- | -------- | --------------------------- | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL` | prod     | `https://www.seshakart.com` | Canonical public URL, used in metadata, sitemap and canonical links.        |
-| `API_INTERNAL_URL`     | yes      | `http://localhost:4000`     | Server-side URL of the API. It is never sent to browsers.                   |
-| `CANONICAL_HOST`       | no       | `www.seshakart.com`         | In production, requests to the apex domain get a 308 redirect to this host. |
+| Variable                    | Required | Default                     | Description                                                                               |
+| --------------------------- | -------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`      | prod     | `https://www.seshakart.com` | Canonical public URL, used in metadata, sitemap and canonical links.                      |
+| `API_INTERNAL_URL`          | yes      | `http://localhost:4000`     | Server-side URL of the API. It is never sent to browsers.                                 |
+| `CANONICAL_HOST`            | no       | `www.seshakart.com`         | In production, requests to the apex domain get a 308 redirect to this host.               |
+| `ENABLE_DESIGN_SYSTEM_PAGE` | no       | `false`                     | Serves `/design-system` in production builds (for staging). It must be set at build time. |
 
 ## API (`apps/api`)
 

@@ -6,7 +6,7 @@ Production e-commerce platform for the Indian market: a Next.js storefront and a
 a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
 data and caching.
 
-> **Status:** Phase 1 (architecture and repository setup) is complete. See the
+> **Status:** Phases 1–2 are complete: architecture, the design system and the brand. See the
 > [roadmap](#roadmap) for what comes next.
 
 ## Repository layout
@@ -18,6 +18,7 @@ apps/
 packages/
   types/          Shared API contracts and domain types (@seshakart/types)
   validation/     Shared Zod schemas used by web forms AND the API (@seshakart/validation)
+  ui/             Design system: tokens, Tailwind preset, accessible React components (@seshakart/ui)
   tsconfig/       Shared TypeScript presets
   eslint-config/  Shared ESLint flat config
 brand/            Brand reference board + master logo files
@@ -42,37 +43,40 @@ pnpm dev                      # web on :3000, API on :4000
 ```
 
 - Storefront: http://localhost:3000
+- Design system reference: http://localhost:3000/design-system (development only)
 - API health: http://localhost:4000/api/health. The same endpoint is also served through the web proxy at http://localhost:3000/api/health.
 
 ## Common commands
 
-| Command          | What it does                                         |
-| ---------------- | ---------------------------------------------------- |
-| `pnpm dev`       | Build shared packages, run API and web in watch mode |
-| `pnpm build`     | Production build of packages, API and web            |
-| `pnpm test`      | Unit and integration tests in every workspace        |
-| `pnpm lint`      | ESLint in every workspace                            |
-| `pnpm typecheck` | TypeScript in every workspace                        |
-| `pnpm format`    | Prettier                                             |
-| `pnpm infra:up`  | Start local PostgreSQL and Redis (Docker)            |
+| Command             | What it does                                             |
+| ------------------- | -------------------------------------------------------- |
+| `pnpm dev`          | Build shared packages, run API and web in watch mode     |
+| `pnpm build`        | Production build of packages, API and web                |
+| `pnpm test`         | Unit and integration tests in every workspace            |
+| `pnpm lint`         | ESLint in every workspace                                |
+| `pnpm typecheck`    | TypeScript in every workspace                            |
+| `pnpm format`       | Prettier                                                 |
+| `pnpm infra:up`     | Start local PostgreSQL and Redis (Docker)                |
+| `pnpm brand:assets` | Regenerate the provisional logo set from the brand board |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) covers system design, key decisions and the phase plan.
 - [Environment](docs/ENVIRONMENT.md) lists every environment variable.
+- [Brand design system](docs/BRAND_DESIGN_SYSTEM.md) covers the logo, colour, type, components and accessibility rules.
 - [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
 - [Brand identity brief](docs/brand/brand-identity-brief.md)
 
 These docs arrive in the phases that introduce the matching features: `DATABASE.md`, `API.md`,
-`DEPLOYMENT.md`, `SECURITY.md`, `TESTING.md`, `ADMIN_GUIDE.md` and `BRAND_DESIGN_SYSTEM.md`.
+`DEPLOYMENT.md`, `SECURITY.md`, `TESTING.md` and `ADMIN_GUIDE.md`.
 
 ## Roadmap
 
 | Phase | Scope                                | Status  |
 | ----- | ------------------------------------ | ------- |
 | 1     | Architecture & repository setup      | ✅ Done |
-| 2     | Design system & brand implementation | Next    |
-| 3     | Database & backend foundation        |         |
+| 2     | Design system & brand implementation | ✅ Done |
+| 3     | Database & backend foundation        | Next    |
 | 4     | Authentication & customer system     |         |
 | 5     | Product / catalog / category system  |         |
 | 6     | Search & filtering                   |         |

@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, '../..'),
   poweredByHeader: false,
   reactStrictMode: true,
+  // The design-system package ships TypeScript source; Next compiles it with the app.
+  transpilePackages: ['@seshakart/ui'],
+  experimental: { optimizePackageImports: ['lucide-react', '@seshakart/ui'] },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [360, 414, 640, 768, 1024, 1280, 1536, 1920],
