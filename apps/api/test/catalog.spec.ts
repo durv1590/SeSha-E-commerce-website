@@ -339,6 +339,44 @@ describe('catalogue API (integration)', () => {
     });
   });
 
+  describe('sitemap', () => {
+    it('lists exactly what customers can see: live products, non-empty categories and brands, published pages', async () => {
+      const hidden = await prisma.category.findUniqueOrThrow({ where: { slug: 'hidden' } });
+      const child = await prisma.category.create({
+        data: { slug: 'hidden-child', name: 'Child', parentId: hidden.id, depth: 1 },
+      });
+      await prisma.category.create({ data: { slug: 'empty', name: 'Empty' } });
+      const lonely = await prisma.brand.create({ data: { slug: 'lonely', name: 'Lonely' } });
+      await prisma.product.create({
+        data: {
+          slug: 'orphan',
+          name: 'Orphan',
+          sku: 'ORPHAN',
+          categoryId: child.id,
+          brandId: lonely.id,
+          status: 'ACTIVE',
+        },
+      });
+      await prisma.page.createMany({
+        data: [
+          { slug: 'about-us', title: 'About', content: 'x', isPublished: true },
+          { slug: 'terms', title: 'Terms', content: 'x', isPublished: false },
+        ],
+      });
+
+      const res = await get('/api/sitemap').expect(200);
+      const d = res.body.data;
+      const s = (xs: { slug: string }[]) => xs.map((x) => x.slug).sort();
+      expect(s(d.products)).toEqual(['boom', 'buds', 'pods', 'tee']);
+      expect(s(d.categories)).toEqual(['audio', 'earbuds', 'electronics', 'fashion', 'speakers']);
+      expect(s(d.brands)).toEqual(['aurora', 'voltix']);
+      expect(s(d.pages)).toEqual(['about-us']);
+      const pods = d.products.find((p: { slug: string }) => p.slug === 'pods');
+      expect(pods.images).toEqual(['/api/media/test/pods.webp']);
+      expect(new Date(pods.updatedAt).toString()).not.toBe('Invalid Date');
+    });
+  });
+
   describe('media', () => {
     it('serves stored media immutably with a sandboxing CSP, and never escapes the media folder', async () => {
       const dir = join(app.get(StorageService).localDir, 'test');

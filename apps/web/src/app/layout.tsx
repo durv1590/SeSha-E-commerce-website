@@ -2,16 +2,31 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { colors } from '@seshakart/ui/tokens';
 import { inter, interRupee, montserrat, montserratRupee } from './fonts';
+import { DEFAULT_OG_IMAGE, isIndexable, SITE_NAME, siteUrl } from '@/lib/seo/site';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.seshakart.com';
+const DEFAULT_TITLE = 'SeShaKart — Smart Shopping, Better Living';
+const DEFAULT_DESCRIPTION =
+  'SeShaKart is a modern Indian online store — more choices, more value, fast delivery.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: { default: 'SeShaKart — Smart Shopping, Better Living', template: '%s | SeShaKart' },
-  description:
-    'SeShaKart is a modern Indian online store — more choices, more value, fast delivery.',
-  applicationName: 'SeShaKart',
+  metadataBase: new URL(siteUrl()),
+  title: { default: DEFAULT_TITLE, template: `%s | ${SITE_NAME}` },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  // Pages that set their own openGraph replace this block (see pageMetadata()).
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    locale: 'en_IN',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  // X falls back to the Open Graph title, description and image.
+  twitter: { card: 'summary_large_image' },
+  // Staging and preview hosts are never indexed, whatever a page says.
+  ...(isIndexable() ? {} : { robots: { index: false, follow: false } }),
 };
 
 export const viewport: Viewport = {

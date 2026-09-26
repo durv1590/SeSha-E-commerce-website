@@ -4,16 +4,20 @@ import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
 import { getBrand } from '@/lib/catalog';
 import type { RawSearchParams } from '@/lib/listing-params';
+import { listingCanonical, pageMetadata } from '@/lib/seo/site';
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<RawSearchParams> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const b = await getBrand((await params).slug);
-  return withSeo(`/brand/${b.slug}`, {
-    title: b.metaTitle ?? `${b.name} products`,
-    description: b.metaDescription ?? b.description ?? `Shop ${b.name} on SeShaKart.`,
-    alternates: { canonical: `/brand/${b.slug}` },
-  });
+  return withSeo(
+    `/brand/${b.slug}`,
+    pageMetadata({
+      title: b.metaTitle ?? `${b.name} products`,
+      description: b.metaDescription ?? b.description ?? `Shop ${b.name} on SeShaKart.`,
+      path: listingCanonical(`/brand/${b.slug}`, await searchParams),
+    }),
+  );
 }
 
 export default async function BrandPage({ params, searchParams }: Props) {

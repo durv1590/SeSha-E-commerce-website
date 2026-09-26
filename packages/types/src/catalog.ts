@@ -251,3 +251,17 @@ export interface ReviewablePurchaseDto {
   imageUrl: string | null;
   deliveredAt: string;
 }
+
+/** Everything the storefront sitemap lists. Only customer-visible records are included. */
+export interface SitemapEntryDto {
+  slug: string;
+  updatedAt: string;
+}
+export interface SitemapDto {
+  products: (SitemapEntryDto & { images: string[] })[];
+  /** Visible categories with at least one live product in their subtree. */
+  categories: SitemapEntryDto[];
+  /** Visible brands with at least one live product. */
+  brands: SitemapEntryDto[];
+  pages: SitemapEntryDto[];
+}

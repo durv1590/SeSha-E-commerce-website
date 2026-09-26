@@ -5,25 +5,26 @@ import { ProductRail } from '@/components/catalog/ProductRail';
 import { ProductHero } from '@/components/product/ProductHero';
 import { ProductReviews } from '@/components/product/ProductReviews';
 import { getProduct, getRelated, getReviews } from '@/lib/catalog';
+import { breadcrumbJsonLd, productJsonLd } from '@/lib/seo/json-ld';
+import { pageMetadata } from '@/lib/seo/site';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ variant?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProduct((await params).slug);
-  const image = p.images[0];
-  return withSeo(`/product/${p.slug}`, {
-    title: p.metaTitle ?? p.name,
-    description: p.metaDescription ?? p.shortDescription,
-    alternates: { canonical: `/product/${p.slug}` },
-    openGraph: {
-      type: 'website',
-      title: p.name,
-      description: p.shortDescription,
-      images: image
-        ? [{ url: image.url, width: image.width, height: image.height, alt: image.alt }]
-        : undefined,
-    },
-  });
+  return withSeo(
+    `/product/${p.slug}`,
+    pageMetadata({
+      title: p.metaTitle ?? p.name,
+      description: p.metaDescription ?? p.shortDescription,
+      // ?variant= links show the same product: one canonical URL.
+      path: `/product/${p.slug}`,
+      images: p.images
+        .slice(0, 4)
+        .map((i) => ({ url: i.url, width: i.width, height: i.height, alt: i.alt })),
+    }),
+  );
 }
 
 export default async function ProductPage({ params, searchParams }: Props) {
@@ -41,8 +42,15 @@ export default async function ProductPage({ params, searchParams }: Props) {
     { title: 'Warranty', body: product.warrantyInfo },
   ].filter((i) => i.body);
 
+  const crumbs = [
+    { name: 'Home', path: '/' },
+    ...product.breadcrumbs.map((b) => ({ name: b.name, path: `/category/${b.slug}` })),
+    { name: product.name, path: `/product/${product.slug}` },
+  ];
+
   return (
     <>
+      <JsonLd data={[productJsonLd(product, reviews), breadcrumbJsonLd(crumbs)]} />
       <div className="container-page flex flex-col gap-4 pt-4">
         <Breadcrumbs
           items={[

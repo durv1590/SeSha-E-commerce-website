@@ -5,16 +5,23 @@ import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
 import { getCategory } from '@/lib/catalog';
 import type { RawSearchParams } from '@/lib/listing-params';
+import { breadcrumbJsonLd } from '@/lib/seo/json-ld';
+import { listingCanonical, pageMetadata } from '@/lib/seo/site';
+import { JsonLd } from '@/components/seo/JsonLd';
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<RawSearchParams> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const c = await getCategory((await params).slug);
-  return withSeo(`/category/${c.slug}`, {
-    title: c.metaTitle ?? `${c.name} — Buy online`,
-    description: c.metaDescription ?? c.description ?? `Shop ${c.name} online at SeShaKart.`,
-    alternates: { canonical: `/category/${c.slug}` },
-  });
+  return withSeo(
+    `/category/${c.slug}`,
+    pageMetadata({
+      title: c.metaTitle ?? `${c.name} — Buy online`,
+      description: c.metaDescription ?? c.description ?? `Shop ${c.name} online at SeShaKart.`,
+      path: listingCanonical(`/category/${c.slug}`, await searchParams),
+      images: c.imageUrl ? [{ url: c.imageUrl, alt: c.name }] : undefined,
+    }),
+  );
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
@@ -22,6 +29,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const category = await getCategory(slug);
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          ...category.breadcrumbs.map((b) => ({ name: b.name, path: `/category/${b.slug}` })),
+        ])}
+      />
       <div className="container-page pt-4">
         <Breadcrumbs
           items={[

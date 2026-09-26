@@ -4,12 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { getCategoryTree } from '@/lib/catalog';
+import { pageMetadata } from '@/lib/seo/site';
 
-const baseMetadata: Metadata = {
+const baseMetadata = pageMetadata({
   title: 'All categories',
   description: 'Browse every SeShaKart category.',
-  alternates: { canonical: '/categories' },
-};
+  path: '/categories',
+});
 
 export function generateMetadata(): Promise<Metadata> {
   return withSeo('/categories', baseMetadata);

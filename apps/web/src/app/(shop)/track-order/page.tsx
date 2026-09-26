@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { TrackOrder } from '@/components/orders/TrackOrder';
+import { pageMetadata } from '@/lib/seo/site';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Track your order',
   description:
     'Check the status of your SeShaKart order with your order number and email or mobile number.',
-  alternates: { canonical: '/track-order' },
-};
+  path: '/track-order',
+});
 
 export default function Page() {
   return (

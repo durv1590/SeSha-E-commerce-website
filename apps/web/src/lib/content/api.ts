@@ -27,7 +27,8 @@ export async function getPage(slug: string): Promise<CmsPageDto> {
   }
 }
 
-async function overrides(): Promise<SeoOverrideDto[]> {
+/** Admin SEO overrides (cached). Empty, never an error, if the API is down. */
+export async function getSeoOverrides(): Promise<SeoOverrideDto[]> {
   if (process.env.NEXT_PHASE === 'phase-production-build') return [];
   try {
     return (await serverApi<SeoOverrideDto[]>('/seo-overrides', cached)).data;
@@ -40,6 +41,6 @@ async function overrides(): Promise<SeoOverrideDto[]> {
 export async function withSeo(path: string, base: Metadata): Promise<Metadata> {
   return mergeSeo(
     base,
-    (await overrides()).find((o) => o.path === path),
+    (await getSeoOverrides()).find((o) => o.path === path),
   );
 }

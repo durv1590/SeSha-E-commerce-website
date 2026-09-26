@@ -3,18 +3,22 @@ import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
 import type { RawSearchParams } from '@/lib/listing-params';
+import { listingCanonical, pageMetadata } from '@/lib/seo/site';
 
-const baseMetadata: Metadata = {
-  title: 'All products',
-  description: 'Browse the full SeShaKart catalogue.',
-  alternates: { canonical: '/products' },
-};
+type Props = { searchParams: Promise<RawSearchParams> };
 
-export function generateMetadata(): Promise<Metadata> {
-  return withSeo('/products', baseMetadata);
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  return withSeo(
+    '/products',
+    pageMetadata({
+      title: 'All products',
+      description: 'Browse the full SeShaKart catalogue.',
+      path: listingCanonical('/products', await searchParams),
+    }),
+  );
 }
 
-export default async function Page({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+export default async function Page({ searchParams }: Props) {
   return (
     <>
       <div className="container-page pt-4">

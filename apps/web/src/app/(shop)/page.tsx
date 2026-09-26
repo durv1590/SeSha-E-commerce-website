@@ -9,13 +9,18 @@ import { HeroBanner } from '@/components/home/HeroBanner';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { SectionHeading } from '@/components/layout/SectionHeading';
 import { getHome } from '@/lib/catalog';
+import { getPublicSettings } from '@/lib/settings/public';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/json-ld';
+import { pageMetadata } from '@/lib/seo/site';
+import { JsonLd } from '@/components/seo/JsonLd';
 
-const baseMetadata: Metadata = {
-  title: { absolute: 'SeShaKart — Smart Shopping, Better Living' },
+const baseMetadata = pageMetadata({
+  title: 'SeShaKart — Smart Shopping, Better Living',
+  absoluteTitle: true,
   description:
     'Shop electronics, fashion, home & kitchen, beauty and more on SeShaKart. Genuine products, secure payments and fast delivery across India.',
-  alternates: { canonical: '/' },
-};
+  path: '/',
+});
 
 export function generateMetadata(): Promise<Metadata> {
   return withSeo('/', baseMetadata);
@@ -39,7 +44,7 @@ const BENEFITS: { icon: BrandIconName; title: string; text: string }[] = [
 const OFFER_THEME = { PRIMARY: 'primary', NAVY: 'navy', ACCENT: 'accent', LIGHT: 'light' } as const;
 
 export default async function HomePage() {
-  const home = await getHome().catch(() => null);
+  const [home, settings] = await Promise.all([getHome().catch(() => null), getPublicSettings()]);
   if (!home) {
     return (
       <div className="container-page py-section text-center">
@@ -51,6 +56,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={[organizationJsonLd(settings), websiteJsonLd()]} />
       <h1 className="sr-only">SeShaKart — Smart Shopping, Better Living</h1>
 
       {home.heroBanners.length > 0 && (
