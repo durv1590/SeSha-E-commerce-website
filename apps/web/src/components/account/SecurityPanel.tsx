@@ -10,6 +10,7 @@ import { api } from '@/lib/api/browser';
 import { useForm } from '@/lib/forms/use-form';
 import { describeUserAgent } from '@/lib/user-agent';
 import { PasswordInput } from '../auth/PasswordInput';
+import { refreshCartState } from '@/lib/cart/store';
 
 const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -90,6 +91,7 @@ export function SecurityPanel({
               setSigningOutAll(true);
               try {
                 await api.post('/auth/logout-all');
+                refreshCartState();
                 router.push('/login');
                 router.refresh();
               } finally {

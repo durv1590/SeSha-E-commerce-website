@@ -67,6 +67,11 @@
 | 30  | **Search results are ranked ids, then the normal listing query**                                                                       | Filters, facets, pagination and card data are shared with every listing, so search results behave exactly like category pages.                                                                    |
 | 31  | **Anonymous, aggregate search analytics**                                                                                              | Popular searches and completions need counts, not identities. No user, session or IP is stored, and personal-looking queries are dropped.                                                         |
 | 32  | **Recent searches stay in the browser** (`localStorage`)                                                                               | Useful for the shopper, and nothing personal is sent or stored server-side.                                                                                                                       |
+| 33  | **Pricing is a pure module** (`apps/api/src/cart/pricing.ts`)                                                                          | Cart and checkout compute identical numbers; every coupon and tax rule is unit-tested without a database.                                                                                         |
+| 34  | **Prices are GST-inclusive; GST is reported, never added**                                                                             | Indian retail convention (MRP includes tax). Tax is computed per line after its share of the coupon, ready for invoices.                                                                          |
+| 35  | **Guest carts use an opaque token cookie scoped to `/api`**, stored as an HMAC                                                         | No account needed to shop; a database leak can't be replayed into a cart. The cart page therefore renders in the browser.                                                                         |
+| 36  | **Carts flag problems instead of silently changing them**                                                                              | A price or stock change never alters what the shopper asked for without telling them; checkout is blocked until they choose.                                                                      |
+| 37  | **Wishlist is for signed-in customers only**                                                                                           | The spec asks for server-side storage; guest hearts lead to sign-in and back.                                                                                                                     |
 
 ## Request lifecycle (API)
 
@@ -244,3 +249,34 @@ checks responsive behaviour, and records decisions here.
     `rank/(rank+1)`).
   - The fuzzy fallback returned partial matches for real words that never occur together.
   - The sticky sort bar slid under the taller phone header.
+
+### Phase 7: cart and wishlist ✅
+
+- **API:**
+  - Guest carts (HttpOnly token cookie or `X-Cart-Token`, HMAC-stored) and customer carts,
+    merged on sign-in, with stale guest carts purged.
+  - Add, update, remove and save for later, validated against live variants, stock and the
+    per-item limit; lines that change underneath the shopper are flagged and block checkout.
+  - A pure pricing module: MRP savings, the coupon engine (percentage and fixed, product and
+    category restrictions, first order, customer-specific, minimum value, cap, dates, total and
+    per-customer limits), free-delivery threshold and included GST.
+  - Server-side wishlist with live prices and move to cart.
+  - 12 pricing unit tests and 19 integration tests (cart ownership, forged tokens, stock
+    changes, CSRF with the cart cookie, app tokens, merging, coupons, wishlist privacy).
+- **Web:**
+  - Header cart and wishlist badges that stay in sync across tabs (BroadcastChannel) and
+    refresh on focus and after signing in or out.
+  - Add to cart from cards ("Choose options" for products with variants) and from the product
+    page (quantity, Add to cart, Buy now, Wishlist).
+  - `/cart`: lines with quantity, save for later, remove with undo, clear problem messages with
+    one-click fixes, a coupon form, a free-delivery progress bar, price details with savings and
+    GST, and a sticky total and checkout bar on phones.
+  - `/account/wishlist` with move to cart; empty states for both.
+- **QA:** end-to-end browser flows (card and product adds, cross-tab badge, coupons, save and
+  undo, guest to account merge on registration, wishlist), axe clean on the product, cart and
+  wishlist pages, and no overflow at 16 widths.
+- **Bugs found and fixed:**
+  - A new guest's first add returned an empty cart (the response was built before the new token
+    existed).
+  - The account sidebar and the footer were both a navigation landmark called "Account".
+  - The cart's sign-in link was 4.47:1 contrast.

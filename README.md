@@ -6,8 +6,9 @@ Production e-commerce platform for the Indian market: a Next.js storefront and a
 a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
 data and caching.
 
-> **Status:** Phases 1–6 are complete: architecture, the design system and brand, the database
-> and backend foundation, authentication and accounts, the product catalogue, and search. See the
+> **Status:** Phases 1–7 are complete: architecture, the design system and brand, the database
+> and backend foundation, authentication and accounts, the product catalogue, search, and the
+> cart and wishlist. See the
 > [roadmap](#roadmap) for what comes next.
 
 ## Repository layout
@@ -97,8 +98,8 @@ These docs arrive in the phases that introduce the matching features: `DEPLOYMEN
 | 4     | Authentication & customer system     | ✅ Done |
 | 5     | Product / catalog / category system  | ✅ Done |
 | 6     | Search & filtering                   | ✅ Done |
-| 7     | Cart & wishlist                      | Next    |
-| 8     | Checkout & payment architecture      |         |
+| 7     | Cart & wishlist                      | ✅ Done |
+| 8     | Checkout & payment architecture      | Next    |
 | 9     | Orders & shipping                    |         |
 | 10    | Admin dashboard                      |         |
 | 11    | SEO & analytics                      |         |

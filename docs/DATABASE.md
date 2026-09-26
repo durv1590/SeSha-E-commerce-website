@@ -79,7 +79,8 @@ migrations. `test/database.spec.ts` proves each one rejects bad writes:
 - **Addresses:** valid PIN code and mobile. At most one default address per user.
 - **Coupons:** upper-case code, a percentage ≤ 100, a valid date window and usage limits > 0.
 - **Reviews:** rating 1–5, one review per user per product. Categories: depth 0–2, never their own parent.
-- **Carts:** belong to a user or a guest token, with quantity 1–99.
+- **Carts:** belong to a user or a guest token (only its HMAC is stored), with quantity 1–99. Guest
+  carts untouched for `cartRetentionDays` are purged every 6 hours. Wishlists belong to users only.
 
 Other database objects:
 

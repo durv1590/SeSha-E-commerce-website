@@ -1,6 +1,7 @@
 import type { ProductSummary } from '@seshakart/types';
 import { ProductCard } from '../cards/ProductCard';
 import { SectionHeading } from '../layout/SectionHeading';
+import { cardSlots } from '../cart/card-slots';
 import { toCard } from './toCard';
 
 /**
@@ -35,7 +36,7 @@ export function ProductRail({
             key={p.id}
             className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[23%] lg:w-auto lg:[&:nth-child(n+6)]:hidden 2xl:[&:nth-child(6)]:block"
           >
-            <ProductCard product={toCard(p)} headingLevel="h3" />
+            <ProductCard product={toCard(p)} headingLevel="h3" {...cardSlots(p)} />
           </li>
         ))}
       </ul>

@@ -1,14 +1,16 @@
 'use client';
 
 import { cn } from '@seshakart/ui';
-import { Bell, LayoutDashboard, LogOut, MapPin, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Heart, LayoutDashboard, LogOut, MapPin, ShieldCheck, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api/browser';
+import { refreshCartState } from '@/lib/cart/store';
 
-// Orders, wishlist and reviews join this list in their phases.
+// Orders and reviews join this list in their phases.
 const ITEMS = [
   { href: '/account', label: 'Overview', icon: LayoutDashboard },
+  { href: '/account/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/account/profile', label: 'Profile', icon: UserRound },
   { href: '/account/addresses', label: 'Addresses', icon: MapPin },
   { href: '/account/security', label: 'Security', icon: ShieldCheck },
@@ -24,7 +26,7 @@ export function AccountNav() {
 
   return (
     <nav
-      aria-label="Account"
+      aria-label="My account"
       className="-mx-gutter overflow-x-auto px-gutter lg:mx-0 lg:overflow-visible lg:px-0"
     >
       <ul className="flex gap-2 pb-1 lg:flex-col lg:gap-1">
@@ -53,6 +55,7 @@ export function AccountNav() {
             type="button"
             onClick={async () => {
               await api.post('/auth/logout').catch(() => undefined);
+              refreshCartState();
               router.push('/');
               router.refresh();
             }}

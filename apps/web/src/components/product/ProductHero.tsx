@@ -1,10 +1,23 @@
 'use client';
 
 import type { ProductDetail, VariantDto } from '@seshakart/types';
-import { Badge, Price, QuantityStepper, Rating, StockBadge, cn } from '@seshakart/ui';
-import { BadgeCheck, RotateCcw, Truck } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Price,
+  QuantityStepper,
+  Rating,
+  StockBadge,
+  cn,
+  useToast,
+} from '@seshakart/ui';
+import { BadgeCheck, RotateCcw, ShoppingCart, Truck, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ApiError } from '@/lib/api/errors';
+import { addToCart } from '@/lib/cart/store';
+import { WishlistButton } from '../cart/WishlistButton';
 import { ProductGallery } from './ProductGallery';
 import { ShareButton } from './ShareButton';
 import { availableValues, optionValues, orderOptionNames, selectValue } from './variant-selection';
@@ -28,6 +41,9 @@ export function ProductHero({
     product.variants[0]!;
   const [variant, setVariant] = useState<VariantDto>(initial);
   const [qty, setQty] = useState(1);
+  const [busy, setBusy] = useState<'add' | 'buy' | null>(null);
+  const { toast } = useToast();
+  const router = useRouter();
   const optionNames = orderOptionNames(product.optionNames);
   const values = optionValues(product.variants, optionNames);
 
@@ -42,6 +58,31 @@ export function ProductHero({
   };
 
   const maxQty = Math.max(1, Math.min(variant.available, MAX_QTY));
+
+  // Buy now goes straight on to the cart (checkout arrives in Phase 8).
+  const buy = async (mode: 'add' | 'buy') => {
+    setBusy(mode);
+    try {
+      await addToCart(variant.id, qty);
+      if (mode === 'buy') {
+        router.push('/cart');
+        return;
+      }
+      toast({
+        variant: 'success',
+        title: 'Added to cart',
+        description: `${product.name}${optionNames.length ? ` (${variant.name})` : ''} × ${qty}`,
+        action: { label: 'View cart', onClick: () => router.push('/cart') },
+      });
+    } catch (err) {
+      toast({
+        variant: 'error',
+        title: err instanceof ApiError ? err.message : 'Couldn’t add this item.',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:gap-10">
@@ -151,7 +192,43 @@ export function ProductHero({
           <span className="text-caption text-text-muted">SKU {variant.sku}</span>
         </div>
 
-        {/* Add to cart and Buy now arrive with the cart (Phase 7). */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {variant.available > 0 ? (
+            <>
+              <Button
+                size="lg"
+                className="sm:min-w-48 sm:flex-1"
+                loading={busy === 'add'}
+                disabled={busy !== null}
+                onClick={() => buy('add')}
+              >
+                <ShoppingCart size={20} aria-hidden="true" />
+                Add to cart
+              </Button>
+              <Button
+                size="lg"
+                variant="accent"
+                className="sm:min-w-48 sm:flex-1"
+                loading={busy === 'buy'}
+                disabled={busy !== null}
+                onClick={() => buy('buy')}
+              >
+                <Zap size={20} aria-hidden="true" />
+                Buy now
+              </Button>
+            </>
+          ) : (
+            <Button size="lg" variant="outline" disabled className="sm:flex-1">
+              Out of stock
+            </Button>
+          )}
+          <WishlistButton
+            productId={product.id}
+            productName={product.name}
+            variant="inline"
+            className="h-control-lg justify-center"
+          />
+        </div>
 
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-card border border-border bg-surface p-4 text-small sm:grid-cols-3">
           <li className="flex items-start gap-2">

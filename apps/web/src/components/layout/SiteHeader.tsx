@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { getCategoryTree } from '@/lib/catalog';
 import { getPublicSettings } from '@/lib/settings/public';
 import { Logo } from '../brand/Logo';
+import { CartLink, WishlistLink } from '../cart/HeaderCartLinks';
 import { SearchBox, SearchBoxFallback } from '../search/SearchBox';
 import { AccountMenu } from './AccountMenu';
 import { CategoryNav } from './CategoryNav';
@@ -12,7 +13,8 @@ import { MobileMenu } from './MobileMenu';
 /**
  * Site header. Server component; only the account menu and mobile drawer hydrate.
  * Search sits in the main bar from 768 px and in its own full-width row below it on
- * phones. Wishlist and cart are added by their phases.
+ * phones. Phones keep the header to menu, logo, account and cart; the wishlist is in
+ * the menu drawer there.
  */
 export async function SiteHeader() {
   const [settings, tree] = await Promise.all([getPublicSettings(), getCategoryTree()]);
@@ -49,6 +51,10 @@ export async function SiteHeader() {
           <div className="sm:hidden">
             <AccountMenu compact />
           </div>
+          <div className="hidden sm:block">
+            <WishlistLink />
+          </div>
+          <CartLink />
         </div>
       </div>
       <div className="container-page pb-2 md:hidden">

@@ -143,4 +143,64 @@ the last result count, no user, session or IP. Only page 1 of `/products?q=` cou
 never do), and queries that look like personal data (emails, phone or card-like numbers, URLs)
 are never stored.
 
-Cart, checkout, orders, payments and admin endpoints are documented here as their phases land.
+### Cart: `/cart` (guests and signed-in customers)
+
+| Method | Path              | Body                            | Description                                                                                |
+| ------ | ----------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
+| GET    | `/cart`           |                                 | The cart with live prices, stock, coupon and totals (`CartDto`); `Cache-Control: no-store` |
+| GET    | `/cart/summary`   |                                 | `{ count }` for the header badge (units, excluding saved for later)                        |
+| POST   | `/cart/items`     | `{ variantId, quantity? }`      | Adds (or adds to) a line; moves a saved-for-later line back. 60/min                        |
+| PATCH  | `/cart/items/:id` | `{ quantity?, savedForLater? }` | Changes quantity or saves for later / moves back                                           |
+| DELETE | `/cart/items/:id` |                                 | Removes a line                                                                             |
+| POST   | `/cart/coupon`    | `{ code }`                      | Applies a coupon (case-insensitive). **10 per 10 minutes** to stop code guessing           |
+| DELETE | `/cart/coupon`    |                                 | Removes the coupon                                                                         |
+
+Every write returns the full `CartDto`. **The client never sends prices or totals**: only a
+variant, a quantity or a code.
+
+- **Who owns a cart:** a signed-in customer, or a guest identified by a random 256-bit token:
+  the HttpOnly `sk_cart` cookie (path `/api`, `SameSite=Lax`, renewed on every change) for
+  browsers, or the `X-Cart-Token` header for apps (returned on the first add). Only an HMAC of
+  the token is stored. A browser holding the cart cookie is subject to CSRF checks like a
+  signed-in one.
+- **On sign-in** (password, OTP or registration) the guest cart joins the account's cart:
+  quantities for the same variant add up (capped at the per-item limit), the guest cart is
+  deleted and its cookie cleared.
+- **Validation on every change:** the variant, its product and its category must be active,
+  stock (`stock − reserved`) must cover the quantity, and the quantity must not exceed the
+  admin's `maxQuantityPerItem` (default 10). Errors: `PRODUCT_UNAVAILABLE` (404),
+  `OUT_OF_STOCK`, `INSUFFICIENT_STOCK`, `QUANTITY_LIMIT`, `CART_FULL` (50 lines) (409).
+- **Validation on every read:** lines whose product was withdrawn (`UNAVAILABLE`), sold out
+  (`OUT_OF_STOCK`) or no longer has enough stock (`INSUFFICIENT_STOCK`, with `maxQuantity`) are
+  flagged, left out of the totals, and set `canCheckout: false` until the shopper fixes them.
+- **Totals:** `mrpTotal`, `subtotal`, `productDiscount` (MRP savings), `couponDiscount`,
+  `shippingFee` (standard delivery, free when the amount after the coupon reaches
+  `freeShippingThreshold`), `taxIncluded` (GST already inside the prices, per line at the
+  product's rate, after its share of the coupon) and `total`. Express delivery and the COD fee
+  are chosen at checkout.
+- Guest carts untouched for `cartRetentionDays` (default 60) are deleted.
+
+**Coupon rules** (all checked server-side, again on every read; an applied coupon that stops
+qualifying stays visible with `valid: false` and a reason, and gives no discount):
+
+| Rule                                   | Behaviour                                                                           |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| Active, start and end dates            | Otherwise "isn’t valid", "isn’t active yet" or "has expired"                        |
+| Usage limit (total)                    | `usedCount < usageLimit`                                                            |
+| Customer-specific, first order only    | Need a signed-in customer; first-order ignores cancelled orders                     |
+| Uses per customer                      | Counted from redemptions (guests are checked by email at checkout)                  |
+| Product / category restriction         | Only matching lines (categories include their sub-categories) are discounted        |
+| Minimum cart value                     | Whole-cart subtotal; the message says how much more to add                          |
+| Percentage (with optional cap) / fixed | Never more than the eligible amount; split across lines exactly (largest remainder) |
+
+### Wishlist: `/wishlist` (sign-in required)
+
+| Method | Path                                | Body             | Description                                                                                                        |
+| ------ | ----------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/wishlist`                         |                  | Items with live price and stock; withdrawn products stay, marked unavailable                                       |
+| GET    | `/wishlist/ids`                     |                  | Product ids (for heart icons)                                                                                      |
+| POST   | `/wishlist`                         | `{ productId }`  | Adds (idempotent; up to 200 products). Returns the ids                                                             |
+| DELETE | `/wishlist/:productId`              |                  | Removes. Returns the ids                                                                                           |
+| POST   | `/wishlist/:productId/move-to-cart` | `{ variantId? }` | Adds to the cart and removes from the wishlist. Products with options need a `variantId` (`VARIANT_REQUIRED`, 409) |
+
+Checkout, orders, payments and admin endpoints are documented here as their phases land.

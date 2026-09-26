@@ -9,6 +9,7 @@ import { api } from '@/lib/api/browser';
 import { useForm } from '@/lib/forms/use-form';
 import { PasswordInput } from './PasswordInput';
 import { ResendTimer } from './ResendTimer';
+import { refreshCartState } from '@/lib/cart/store';
 
 type Mode = 'password' | 'otp';
 
@@ -67,6 +68,7 @@ function PasswordLogin({ onSignedIn }: { onSignedIn: () => void }) {
       noValidate
       onSubmit={form.handleSubmit(async () => {
         await api.post('/auth/login', form.values);
+        refreshCartState();
         onSignedIn();
       })}
       className="flex flex-col gap-4"
@@ -151,6 +153,7 @@ function OtpLogin({ onSignedIn }: { onSignedIn: () => void }) {
       noValidate
       onSubmit={verify.handleSubmit(async () => {
         await api.post('/auth/otp/verify', verify.values);
+        refreshCartState();
         onSignedIn();
       })}
       className="flex flex-col gap-4"

@@ -11,6 +11,7 @@ import { FilterPanel } from './FilterPanel';
 import { MobileFilters } from './MobileFilters';
 import { Pagination } from './Pagination';
 import { SortSelect } from './SortSelect';
+import { cardSlots } from '../cart/card-slots';
 import { toCard } from './toCard';
 
 export interface ProductListingProps {
@@ -196,7 +197,13 @@ export async function ProductListing({
           ) : (
             <ProductGrid className="mt-4 2xl:grid-cols-4 3xl:grid-cols-5">
               {result.items.map((p, i) => (
-                <ProductCard key={p.id} product={toCard(p)} priority={i < 4} headingLevel="h2" />
+                <ProductCard
+                  key={p.id}
+                  product={toCard(p)}
+                  priority={i < 4}
+                  headingLevel="h2"
+                  {...cardSlots(p)}
+                />
               ))}
             </ProductGrid>
           )}

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, hasSession } from '@/lib/api/browser';
+import { refreshCartState } from '@/lib/cart/store';
 
 /**
  * Header account entry. Anonymous visitors see "Sign in" instantly (no request);
@@ -70,6 +71,7 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
           danger: true,
           onSelect: async () => {
             await api.post('/auth/logout').catch(() => undefined);
+            refreshCartState();
             setUser(null);
             router.push('/');
             router.refresh();

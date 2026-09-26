@@ -80,6 +80,11 @@ app header (tested). Payment and logistics webhooks (Phase 8) use signature veri
 - Search text is reduced to `[a-z0-9]` words before it reaches `to_tsquery`, and every SQL value
   is a bound parameter (`Prisma.sql`), so tsquery syntax and SQL in a query are plain text
   (tested). Queries are capped at 100 characters and suggestions at 120 requests/min/IP.
+- Carts: the client only ever sends a variant id, a quantity or a coupon code. Prices, stock,
+  discounts, delivery, tax and totals are recomputed from live data on every read and write
+  (tested). Guest cart tokens are 256-bit random values stored as an HMAC; the cookie is
+  HttpOnly and scoped to `/api`, and a browser holding it must pass the CSRF check (tested).
+  Coupon attempts are limited to 10 per 10 minutes per IP.
 - Search analytics store no user, session or IP, and never store queries that look like emails,
   phone or card-like numbers, or URLs (tested). Recent searches stay in the shopper's browser.
 

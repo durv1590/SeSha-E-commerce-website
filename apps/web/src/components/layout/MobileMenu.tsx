@@ -16,6 +16,8 @@ const QUICK = [
 
 const ACCOUNT = [
   { href: '/account', label: 'My account' },
+  { href: '/account/wishlist', label: 'Wishlist' },
+  { href: '/cart', label: 'Cart' },
   { href: '/account/addresses', label: 'Saved addresses' },
   { href: '/account/notifications', label: 'Notifications' },
 ];
