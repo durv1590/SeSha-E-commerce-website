@@ -104,6 +104,9 @@
 | 67  | **Optional in-process cache layer for small hot values (≤ 10 s, deep-frozen)**                                                                                                  | Parsing the category tree from Redis several times per request dominated API CPU; the bounded lag across instances is acceptable for taxonomy and settings.                                                                                  |
 | 68  | **Performance decisions are measured on a synthetic 30k-product database**                                                                                                      | The demo catalogue hides scaling problems; the seed and load scripts live in tools/perf so results can be reproduced before launch.                                                                                                          |
 | 69  | **Root 404 page kept light**                                                                                                                                                    | Next.js embeds the root not-found boundary in every page's payload; the full header there doubled the category tree on every page.                                                                                                           |
+| 70  | **End-to-end tests create a new database per run and drop only that one**                                                                                                       | A harness that resets a named database can wipe real data if misconfigured; creating a uniquely named database (and dropping exactly it afterwards) makes that impossible and keeps runs independent.                                        |
+| 71  | **The e2e storefront has its own production build (NEXT_DIST_DIR)**                                                                                                             | The browser's /api rewrite is fixed at build time; a separate build points it at the e2e API without touching the normal build.                                                                                                              |
+| 72  | **E2E selectors are roles, labels and text**                                                                                                                                    | Tests find elements as users and assistive technology do, so a missing accessible name fails a test; axe runs on every key screen.                                                                                                           |
 
 ## Request lifecycle (API)
 
@@ -485,7 +488,39 @@ Delivered in five milestones, each tested, browser-checked and committed separat
   - A `notFound()` raised inside a page (for example an unknown product) is rendered by the
     browser from the page payload (`<html id="__next_error__">`), not in the server HTML. The
     status is a correct 404 and the page works with JavaScript; unknown URLs outside any page
-    are fully server-rendered. This predates Phase 12 and needs a closer look at the Next.js
-    not-found flow.
+    are fully server-rendered. (Phase 13 traced this to Next.js 15.5 itself; see below.)
   - Home-page Total Blocking Time (~700 ms on the throttled phone profile) is mostly framework
     and card hydration; see PERFORMANCE.md.
+
+### Phase 13: end-to-end testing ✅
+
+- **13A Harness** (`apps/e2e`, [TESTING.md](TESTING.md)): Playwright against the built API, a
+  production storefront build, PostgreSQL and Redis; desktop and phone projects. Each run creates
+  a uniquely named database, migrates it with `migrate deploy`, seeds it, and drops only that
+  database afterwards. The storefront gets its own build (`.next-e2e`) pointed at the e2e API.
+- **13B Journeys:** guest search → cart → cash-on-delivery checkout → tracking; registered
+  customer wishlist → online payment → cancellation with refund; staff dispatch with GST invoice →
+  delivery → customer review → moderation → visible on the product page; return → restock →
+  automatic refund → UTR recorded; access control; CSP nonce and injected-script refusal; SEO
+  basics; 404s; axe (WCAG 2.2 AA) on storefront, cart, checkout and admin. **34 tests** (desktop and
+  phone) in about 1–2 minutes including the build. A CI job runs them on every pull request and
+  uploads traces on failure.
+- **Bugs found and fixed:**
+  - **Staff were told to refund manually after completing a return,** but completing it already
+    starts the refund of the returned items; following the instruction would also have refunded
+    the delivery/COD fee. The dialog and the admin guide now say what happens.
+  - **In-text links relied on colour alone** (WCAG 1.4.1: 1.7:1 against the surrounding text, no
+    underline), for example "Sign in to review" on product pages. Links in paragraphs are now
+    underlined site-wide.
+  - The product-not-found page had no `h1`.
+  - Harness issues found while building it: the storefront's `/api` rewrite
+    is fixed at build time (hence the separate e2e build), and Next's on-disk data cache kept the
+    previous run's product ids (cleared on start).
+- **Not a bug in SeShaKart:** the client-rendered not-found for `notFound()` inside a page (known
+  issue from Phase 12) was reproduced in a minimal Next.js 15.5.26 app with no project code: a
+  layout, a `not-found.tsx` and a page calling `notFound()` give the same `__next_error__` shell,
+  while unmatched URLs are server-rendered. The 404 status is correct and an e2e test checks the
+  page appears. Re-check when upgrading Next.js.
+- **Harness safety:** Prisma refuses `migrate reset` when run by an AI agent without the user's
+  consent. Rather than work around that guard, the harness was designed so it never needs a
+  reset (see decision 70).

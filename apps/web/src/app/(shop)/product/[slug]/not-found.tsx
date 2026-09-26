@@ -7,6 +7,7 @@ export default function ProductNotFound() {
     <div className="container-page py-section">
       <EmptyState
         icon={<PackageX size={28} aria-hidden="true" />}
+        headingLevel="h1"
         title="This product isn’t available"
         description="It may have been removed or is no longer sold. Explore similar products instead."
         action={

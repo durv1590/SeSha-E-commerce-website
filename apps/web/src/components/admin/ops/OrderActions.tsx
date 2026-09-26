@@ -70,7 +70,7 @@ const RETURN_ACTION: Record<
     label: 'Complete',
     title: 'Complete this request?',
     description:
-      'For a return, refund the customer from this page after completing. For a replacement, dispatch the new item.',
+      'For a return, the refund for the returned items starts automatically: online payments go back to the original method, and cash-on-delivery refunds appear under “Manual refunds to pay”. For a replacement, dispatch the new item.',
   },
 };
 

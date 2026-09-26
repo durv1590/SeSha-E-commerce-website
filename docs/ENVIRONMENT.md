@@ -63,6 +63,10 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ### Tests and tooling
 
+End-to-end variables (`E2E_*`) are listed in [TESTING.md](TESTING.md#end-to-end-tests).
+`NEXT_DIST_DIR` builds the storefront into another folder than `.next` (the e2e run uses
+`.next-e2e`); leave it unset otherwise.
+
 | Variable              | Default                                                          | Description                                         |
 | --------------------- | ---------------------------------------------------------------- | --------------------------------------------------- |
 | `TEST_DATABASE_URL`   | `postgresql://seshakart:seshakart@localhost:5432/seshakart_test` | Integration-test database. It must contain `_test`. |

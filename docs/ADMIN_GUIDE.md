@@ -68,7 +68,10 @@ Customers request returns from their order page within the product's return wind
 1. **Approve** (arrange the pickup with your courier) or **Reject** (the customer sees your reason).
 2. **Mark received** when the items arrive. Untick "Put the items back into stock" if they're
    damaged.
-3. **Complete**. For a return, refund the customer from the same page; for a replacement,
+3. **Complete**. For a return, the refund for the returned items starts automatically: online
+   payments go back to the original method, and a cash-on-delivery refund appears under **Manual
+   refunds to pay** (pay it, then **Record payment**). Don't press **Refund** as well, unless you
+   also want to refund something else, such as the delivery or COD fee. For a replacement,
    dispatch the new item.
 
 ## Products

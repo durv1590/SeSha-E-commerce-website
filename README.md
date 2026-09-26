@@ -17,6 +17,7 @@ data and caching.
 apps/
   web/            Next.js 15 (App Router, React 19, Tailwind) — storefront + /admin
   api/            NestJS 11 REST API — all business logic, pricing, inventory, payments
+  e2e/            Playwright end-to-end tests against the whole stack
 packages/
   types/          Shared API contracts and domain types (@seshakart/types)
   validation/     Shared Zod schemas used by web forms AND the API (@seshakart/validation)
@@ -61,6 +62,7 @@ pnpm dev                      # web on :3000, API on :4000
 | `pnpm dev`                     | Build shared packages, run API and web in watch mode     |
 | `pnpm build`                   | Production build of packages, API and web                |
 | `pnpm test`                    | Unit and integration tests in every workspace            |
+| `pnpm test:e2e`                | End-to-end tests in a real browser (after `pnpm build`)  |
 | `pnpm lint`                    | ESLint in every workspace                                |
 | `pnpm typecheck`               | TypeScript in every workspace                            |
 | `pnpm format`                  | Prettier                                                 |
@@ -81,6 +83,7 @@ pnpm dev                      # web on :3000, API on :4000
 - [Database](docs/DATABASE.md) covers the data model, constraints, migrations and seed.
 - [API](docs/API.md) is the REST reference and client conventions.
 - [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF, admin and deployment assumptions.
+- [Testing](docs/TESTING.md): unit, integration and end-to-end tests, how to run and write them.
 - [Admin guide](docs/ADMIN_GUIDE.md) explains running the store from the admin, for staff.
 - [Performance](docs/PERFORMANCE.md): load-test results, what was optimised, scaling notes
   ([tools/perf](tools/perf/README.md) reproduces the measurements).
@@ -90,8 +93,7 @@ pnpm dev                      # web on :3000, API on :4000
 - [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
 - [Brand identity brief](docs/brand/brand-identity-brief.md)
 
-These docs arrive in the phases that introduce the matching features: `DEPLOYMENT.md` and
-`TESTING.md`.
+`DEPLOYMENT.md` arrives with Phase 14 (production deployment preparation).
 
 ## Roadmap
 
@@ -109,8 +111,8 @@ These docs arrive in the phases that introduce the matching features: `DEPLOYMEN
 | 10    | Admin dashboard                      | ✅ Done |
 | 11    | SEO & analytics                      | ✅ Done |
 | 12    | Performance & security               | ✅ Done |
-| 13    | Testing (E2E)                        | Next    |
-| 14    | Production deployment preparation    |         |
+| 13    | Testing (E2E)                        | ✅ Done |
+| 14    | Production deployment preparation    | Next    |
 
 ## Contact
 

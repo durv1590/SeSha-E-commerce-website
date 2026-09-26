@@ -92,4 +92,14 @@ test.describe('search engines', () => {
       page.getByRole('heading', { level: 1, name: 'We couldn’t find that page' }),
     ).toBeVisible();
   });
+
+  test('an unknown product answers 404 and shows the not-found page', async ({ page }) => {
+    // Next.js 15 renders a not-found raised inside a page in the browser (the server sends
+    // the 404 status and the page payload); see docs/TESTING.md, "Known limitations".
+    const res = await page.goto('/product/no-such-product');
+    expect(res?.status()).toBe(404);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'This product isn’t available' }),
+    ).toBeVisible();
+  });
 });
