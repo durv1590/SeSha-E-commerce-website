@@ -24,3 +24,7 @@ playwright-report/
 apps/api/uploads/
 *.log
 .DS_Store
+
+# Local Redis snapshots (when redis-server is started from the repo folder)
+dump.rdb
+*.rdb
