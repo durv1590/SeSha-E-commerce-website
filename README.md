@@ -6,10 +6,9 @@ Production e-commerce platform for the Indian market: a Next.js storefront and a
 a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
 data and caching.
 
-> **Status:** Phases 1–9 are complete: architecture, the design system and brand, the database
-> and backend foundation, authentication and accounts, the product catalogue, search, the cart
-> and wishlist, checkout with payments, and orders with shipping, returns and invoices. See the
-> [roadmap](#roadmap) for what comes next.
+> **Status:** all 14 phases of the build plan are complete, from architecture to production
+> deployment preparation. See the [roadmap](#roadmap) and, before going live, the launch
+> checklist in [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Repository layout
 
@@ -25,8 +24,8 @@ packages/
   tsconfig/       Shared TypeScript presets
   eslint-config/  Shared ESLint flat config
 brand/            Brand reference board + master logo files
-docs/             Architecture, environment, brand and (later) API/DB/deploy docs
-infra/            Dockerfiles and docker-compose (dev services + full stack)
+docs/             Architecture, environment, API, database, security, deployment and brand docs
+infra/            Dockerfiles, docker-compose, nginx and operations scripts (backup, restore, smoke)
 .github/          CI workflows
 ```
 
@@ -93,7 +92,8 @@ pnpm dev                      # web on :3000, API on :4000
 - [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
 - [Brand identity brief](docs/brand/brand-identity-brief.md)
 
-`DEPLOYMENT.md` arrives with Phase 14 (production deployment preparation).
+- [Deployment](docs/DEPLOYMENT.md): production setup, launch checklist, releases, rollback,
+  backups and monitoring.
 
 ## Roadmap
 
@@ -112,7 +112,7 @@ pnpm dev                      # web on :3000, API on :4000
 | 11    | SEO & analytics                      | ✅ Done |
 | 12    | Performance & security               | ✅ Done |
 | 13    | Testing (E2E)                        | ✅ Done |
-| 14    | Production deployment preparation    | Next    |
+| 14    | Production deployment preparation    | ✅ Done |
 
 ## Contact
 

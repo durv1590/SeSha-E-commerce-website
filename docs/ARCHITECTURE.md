@@ -107,6 +107,10 @@
 | 70  | **End-to-end tests create a new database per run and drop only that one**                                                                                                       | A harness that resets a named database can wipe real data if misconfigured; creating a uniquely named database (and dropping exactly it afterwards) makes that impossible and keeps runs independent.                                        |
 | 71  | **The e2e storefront has its own production build (NEXT_DIST_DIR)**                                                                                                             | The browser's /api rewrite is fixed at build time; a separate build points it at the e2e API without touching the normal build.                                                                                                              |
 | 72  | **E2E selectors are roles, labels and text**                                                                                                                                    | Tests find elements as users and assistive technology do, so a missing accessible name fails a test; axe runs on every key screen.                                                                                                           |
+| 73  | **Single server with Docker Compose, reached through a Cloudflare Tunnel**                                                                                                      | Right-sized for launch traffic (see PERFORMANCE.md); no open web ports or origin certificates, and only Cloudflare can reach nginx, which makes trusting its client-IP header safe.                                                          |
+| 74  | **Site URL indexing decision uses the build-time value**                                                                                                                        | `NEXT_PUBLIC_SITE_URL` is inlined into the client at build time; reading it at runtime could mark a site indexable whose pages carry another host's canonical links.                                                                         |
+| 75  | **Backups are verified dumps plus media, restored only with an explicit flag**                                                                                                  | A dump is checked with `pg_restore --list` before it counts; restore overwrites everything, so it refuses to run without `--confirm-overwrite`.                                                                                              |
+| 76  | **Versioned images built by CI on tags**                                                                                                                                        | Releases are reproducible and rollback is a tag change; building on the server stays possible for a first deployment.                                                                                                                        |
 
 ## Request lifecycle (API)
 
@@ -524,3 +528,31 @@ Delivered in five milestones, each tested, browser-checked and committed separat
 - **Harness safety:** Prisma refuses `migrate reset` when run by an AI agent without the user's
   consent. Rather than work around that guard, the harness was designed so it never needs a
   reset (see decision 70).
+
+### Phase 14: production deployment preparation ✅
+
+- **14A Hardening:** Compose services start in dependency order on health checks (PostgreSQL,
+  Redis, API, storefront, nginx), stop gracefully (30 s), and rotate their logs; nginx listens on
+  localhost only, with an optional Cloudflare Tunnel service so the server needs no open web
+  ports; image names are configurable for released images; `.env.production.example` passes the
+  API's production validation once filled in (and is rejected until then).
+- **14B Operations:** `infra/scripts/backup.sh` (verified dump + media, retention, off-site copy
+  hook), `restore.sh` (requires `--confirm-overwrite`), `smoke.sh` (read-only checks of health,
+  CSP, headers, robots/sitemap, admin protection, 404s). Backup and restore were tested end to
+  end, and the smoke test against a production-mode stack. A tag-triggered workflow publishes
+  versioned API and storefront images to GitHub Container Registry.
+- **14C Runbook:** [DEPLOYMENT.md](DEPLOYMENT.md): first deployment, pre-launch checklist,
+  launch day, releases, rollback, backups and restore drill, monitoring, security operations,
+  staging and troubleshooting.
+- **Bugs found and fixed:**
+  - The storefront Docker image baked the `/api` rewrite to the default `localhost:4000` (the
+    rewrite is fixed at build time), so every browser API call would have failed in Compose. It
+    now builds with `API_INTERNAL_URL=http://api:4000`, and its health check no longer needs the
+    API.
+  - A storefront server started without `NEXT_PUBLIC_SITE_URL` at runtime fell back to the
+    production URL and became indexable with production canonical links (decision 74).
+  - The environment template pointed the Razorpay webhook at a wrong path.
+- **Verified without Docker** (not available in the build environment): the production API
+  bundle (`pnpm deploy --prod`) migrates, seeds and serves in production mode, and the seed refuses
+  to run without admin credentials; the standalone storefront layout serves pages. `docker
+compose build` and `nginx -t` should be run once on the server before launch.

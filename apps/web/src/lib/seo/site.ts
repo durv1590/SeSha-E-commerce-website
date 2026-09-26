@@ -20,7 +20,9 @@ export const DEFAULT_OG_IMAGE = {
 const BUILD_SITE_URL: string | undefined = process.env.NEXT_PUBLIC_SITE_URL;
 
 /** Env override for tests; the app always uses the build-time value. */
-type SiteEnv = Partial<Record<'NEXT_PUBLIC_SITE_URL' | 'ALLOW_INDEXING' | 'CANONICAL_HOST', string>>;
+type SiteEnv = Partial<
+  Record<'NEXT_PUBLIC_SITE_URL' | 'ALLOW_INDEXING' | 'CANONICAL_HOST', string>
+>;
 
 function configuredSiteUrl(env?: SiteEnv): string | undefined {
   return env ? env.NEXT_PUBLIC_SITE_URL : BUILD_SITE_URL;

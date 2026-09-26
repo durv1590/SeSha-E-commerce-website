@@ -2,7 +2,8 @@
 
 Copy `.env.example` to `.env` **at the repository root** for local development. The API and the
 Prisma CLI both read it. **Never commit `.env` files.**
-In production, set the variables in your hosting platform's secret manager.
+In production, copy `.env.production.example` to `.env.production` on the server (`chmod 600`)
+or use your hosting platform's secret manager; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 The API validates its configuration at startup (`apps/api/src/config/env.ts`) and refuses
 to boot if a value is missing or malformed.
@@ -60,6 +61,17 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 | `ALLOW_DEMO_SEED`                                                         | no             | –                                    | `true` lets `pnpm db:seed:demo` run with `NODE_ENV=production`. Use it on **staging only**.                                                                                            |
 | `SEED_ADMIN_EMAIL`                                                        | seed           | –                                    | Email of the first SUPER_ADMIN created by `pnpm db:seed`.                                                                                                                              |
 | `SEED_ADMIN_PASSWORD`                                                     | seed           | –                                    | Its initial password (8+ chars with a letter and a number; use a long random value). It is never overwritten on later seeds.                                                           |
+
+### Deployment (Docker Compose)
+
+Read by `infra/docker-compose.yml` from `.env.production`, not by the apps.
+
+| Variable                                              | Default                                       | Description                                                                                                                        |
+| ----------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `seshakart` / **required** / `seshakart`      | Database credentials; the Compose file builds the API's `DATABASE_URL` from them.                                                  |
+| `CLOUDFLARE_TUNNEL_TOKEN`                             | –                                             | Token of the Cloudflare Tunnel (profile `tunnel`). Required when that profile is enabled.                                          |
+| `EDGE_BIND`                                           | `127.0.0.1`                                   | Address nginx publishes port 80 on. Keep the default with a tunnel; `0.0.0.0` only behind a firewall that admits Cloudflare alone. |
+| `SESHAKART_API_IMAGE` / `SESHAKART_WEB_IMAGE`         | `seshakart-api:local` / `seshakart-web:local` | Images to run, e.g. released tags from GitHub Container Registry.                                                                  |
 
 ### Tests and tooling
 

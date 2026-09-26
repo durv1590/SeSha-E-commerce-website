@@ -171,8 +171,12 @@ See [SEO_ANALYTICS.md](SEO_ANALYTICS.md).
   Cloudflare), and the API runs with `TRUST_PROXY_HOPS=1`. Without this, every visitor would share
   one IP and the per-IP limits would apply to the whole site. Verified: with `TRUST_PROXY_HOPS=1`,
   forwarded clients are recorded and limited separately.
-- **Trusting CF-Connecting-IP** is safe only if the origin firewall accepts traffic from
-  Cloudflare's IP ranges alone.
+- **Trusting CF-Connecting-IP** is safe only if nothing but Cloudflare can reach nginx. The
+  recommended setup ([DEPLOYMENT.md](DEPLOYMENT.md)) guarantees it: nginx is bound to
+  `127.0.0.1` (`EDGE_BIND`) and Cloudflare reaches it through an outbound Cloudflare Tunnel, so
+  the server has no open web ports. Without a tunnel (`EDGE_BIND=0.0.0.0`), the firewall must
+  accept port 80/443 from Cloudflare's IP ranges only.
+- **PostgreSQL and Redis** are reachable only on the Compose network (no published ports).
 - **Unknown routes:** Nest guards (including the throttler) run only for matched routes. Floods
   against unknown URLs must be absorbed by Cloudflare rate limiting and WAF rules.
 - **Production refuses to boot** without Redis (shared rate limits), SMTP, a real SMS provider

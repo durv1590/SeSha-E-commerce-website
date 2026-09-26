@@ -185,8 +185,11 @@ cache and rate-limit tests.
 - **Migrations** run as a release step before new API containers start:
   `docker compose run --rm api npm run migrate:production`. The migrations are additive and backward
   compatible, so they're safe during rolling deploys.
-- **Backups:** managed PostgreSQL with automated daily snapshots, point-in-time recovery (7+ days) and
-  a quarterly restore drill. See DEPLOYMENT.md (Phase 14).
+- **Backups:** `infra/scripts/backup.sh` (nightly by cron) writes a custom-format `pg_dump`, checks
+  it with `pg_restore --list`, archives the media and copies both off the server;
+  `infra/scripts/restore.sh --confirm-overwrite` restores them in one transaction. Do a restore
+  drill before launch and quarterly. On managed PostgreSQL, also enable its snapshots and
+  point-in-time recovery. See [DEPLOYMENT.md](DEPLOYMENT.md#backups).
 - **Connection pooling:** set `connection_limit` in `DATABASE_URL` per instance, or use PgBouncer in
   transaction mode for many instances.
 - **Slow queries** (≥ `DB_SLOW_QUERY_MS`) are logged without parameters, which may contain personal data.
