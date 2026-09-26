@@ -6,8 +6,8 @@ Production e-commerce platform for the Indian market: a Next.js storefront and a
 a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
 data and caching.
 
-> **Status:** Phases 1–4 are complete: architecture, the design system and brand, the database
-> and backend foundation, and authentication with customer accounts. See the
+> **Status:** Phases 1–5 are complete: architecture, the design system and brand, the database
+> and backend foundation, authentication and accounts, and the product catalogue. See the
 > [roadmap](#roadmap) for what comes next.
 
 ## Repository layout
@@ -44,6 +44,7 @@ cp .env.example .env          # set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 pnpm db:deploy                # apply database migrations
 pnpm build                    # build packages, API and web
 pnpm db:seed                  # default settings + first super admin
+pnpm db:seed:demo             # optional: labelled demo catalogue (never in production)
 pnpm dev                      # web on :3000, API on :4000
 ```
 
@@ -54,22 +55,23 @@ pnpm dev                      # web on :3000, API on :4000
 
 ## Common commands
 
-| Command              | What it does                                             |
-| -------------------- | -------------------------------------------------------- |
-| `pnpm dev`           | Build shared packages, run API and web in watch mode     |
-| `pnpm build`         | Production build of packages, API and web                |
-| `pnpm test`          | Unit and integration tests in every workspace            |
-| `pnpm lint`          | ESLint in every workspace                                |
-| `pnpm typecheck`     | TypeScript in every workspace                            |
-| `pnpm format`        | Prettier                                                 |
-| `pnpm infra:up`      | Start local PostgreSQL and Redis (Docker)                |
-| `pnpm brand:assets`  | Regenerate the provisional logo set from the brand board |
-| `pnpm db:migrate`    | Create and apply a migration (development)               |
-| `pnpm db:new <name>` | Generate a migration non-interactively (CI, containers)  |
-| `pnpm db:deploy`     | Apply pending migrations                                 |
-| `pnpm db:check`      | Fail if migrations and schema.prisma disagree (CI)       |
-| `pnpm db:seed`       | Idempotent base seed                                     |
-| `pnpm db:studio`     | Browse data with Prisma Studio                           |
+| Command                        | What it does                                             |
+| ------------------------------ | -------------------------------------------------------- |
+| `pnpm dev`                     | Build shared packages, run API and web in watch mode     |
+| `pnpm build`                   | Production build of packages, API and web                |
+| `pnpm test`                    | Unit and integration tests in every workspace            |
+| `pnpm lint`                    | ESLint in every workspace                                |
+| `pnpm typecheck`               | TypeScript in every workspace                            |
+| `pnpm format`                  | Prettier                                                 |
+| `pnpm infra:up`                | Start local PostgreSQL and Redis (Docker)                |
+| `pnpm brand:assets`            | Regenerate the provisional logo set from the brand board |
+| `pnpm db:migrate`              | Create and apply a migration (development)               |
+| `pnpm db:new <name>`           | Generate a migration non-interactively (CI, containers)  |
+| `pnpm db:deploy`               | Apply pending migrations                                 |
+| `pnpm db:check`                | Fail if migrations and schema.prisma disagree (CI)       |
+| `pnpm db:seed`                 | Idempotent base seed                                     |
+| `pnpm db:seed:demo [--remove]` | Create (or remove) the labelled demo catalogue           |
+| `pnpm db:studio`               | Browse data with Prisma Studio                           |
 
 ## Documentation
 
@@ -93,8 +95,8 @@ These docs arrive in the phases that introduce the matching features: `DEPLOYMEN
 | 2     | Design system & brand implementation | ✅ Done |
 | 3     | Database & backend foundation        | ✅ Done |
 | 4     | Authentication & customer system     | ✅ Done |
-| 5     | Product / catalog / category system  | Next    |
-| 6     | Search & filtering                   |         |
+| 5     | Product / catalog / category system  | ✅ Done |
+| 6     | Search & filtering                   | Next    |
 | 7     | Cart & wishlist                      |         |
 | 8     | Checkout & payment architecture      |         |
 | 9     | Orders & shipping                    |         |

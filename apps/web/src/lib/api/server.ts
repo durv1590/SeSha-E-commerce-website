@@ -10,7 +10,7 @@ interface Options {
   auth?: boolean;
   /** Next.js data-cache revalidation in seconds for public data; default no-store. */
   revalidate?: number;
-  tags?: string[];
+  tags?: readonly string[];
 }
 
 /**
@@ -36,7 +36,7 @@ export async function serverApi<T>(
     res = await fetch(`${API}/api${path}`, {
       headers,
       ...(opts.revalidate !== undefined && opts.auth === false
-        ? { next: { revalidate: opts.revalidate, tags: opts.tags } }
+        ? { next: { revalidate: opts.revalidate, tags: opts.tags ? [...opts.tags] : undefined } }
         : { cache: 'no-store' }),
     });
   } catch {

@@ -51,8 +51,23 @@ export const colors = {
 export type ColorToken = keyof typeof colors;
 
 export const fonts = {
-  heading: ['var(--font-heading)', 'Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  body: ['var(--font-body)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  // Each stack includes the tiny ₹-only face (see apps/web/src/app/fonts.ts).
+  heading: [
+    'var(--font-heading)',
+    'var(--font-heading-rupee)',
+    'Montserrat',
+    'ui-sans-serif',
+    'system-ui',
+    'sans-serif',
+  ],
+  body: [
+    'var(--font-body)',
+    'var(--font-body-rupee)',
+    'Inter',
+    'ui-sans-serif',
+    'system-ui',
+    'sans-serif',
+  ],
 } as const;
 
 type FontSize = [string, { lineHeight: string; fontWeight?: string; letterSpacing?: string }];

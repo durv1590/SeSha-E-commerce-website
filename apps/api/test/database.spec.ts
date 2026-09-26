@@ -75,6 +75,61 @@ describe('database constraints (integration)', () => {
     });
   });
 
+  describe('product aggregates (triggers)', () => {
+    it('keep min price, discount and available stock in sync with variants and inventory', async () => {
+      const v = await makeVariant(5); // mrp 1999, price 999, stock 5
+      const read = () =>
+        prisma.product.findUniqueOrThrow({
+          where: { id: v.productId },
+          select: { minPrice: true, minPriceMrp: true, maxDiscountPct: true, availableStock: true },
+        });
+      expect(await read()).toEqual({
+        minPrice: 99900,
+        minPriceMrp: 199900,
+        maxDiscountPct: 50,
+        availableStock: 5,
+      });
+
+      const cheaper = await prisma.productVariant.create({
+        data: {
+          productId: v.productId,
+          sku: `${v.sku}-W`,
+          name: 'White',
+          mrp: 89900,
+          price: 79900,
+          inventory: { create: { stock: 2 } },
+        },
+      });
+      expect(await read()).toEqual({
+        minPrice: 79900,
+        minPriceMrp: 89900,
+        maxDiscountPct: 50,
+        availableStock: 7,
+      });
+
+      // A checkout reservation reduces available stock immediately.
+      await prisma.inventory.update({ where: { variantId: v.id }, data: { reserved: 4 } });
+      expect((await read()).availableStock).toBe(3);
+
+      // Deactivated variants no longer count towards price or stock.
+      await prisma.productVariant.update({ where: { id: cheaper.id }, data: { isActive: false } });
+      expect(await read()).toEqual({
+        minPrice: 99900,
+        minPriceMrp: 199900,
+        maxDiscountPct: 50,
+        availableStock: 1,
+      });
+
+      await prisma.productVariant.delete({ where: { id: v.id } });
+      expect(await read()).toEqual({
+        minPrice: 0,
+        minPriceMrp: 0,
+        maxDiscountPct: 0,
+        availableStock: 0,
+      });
+    });
+  });
+
   describe('pricing', () => {
     it('rejects a selling price above MRP', async () => {
       const v = await makeVariant();

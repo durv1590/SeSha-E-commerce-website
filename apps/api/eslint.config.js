@@ -20,5 +20,8 @@ module.exports = [
     languageOptions: { globals: { ...globals.jest } },
   },
   // CLI scripts report progress on stdout.
-  { files: ['src/database/seed.ts'], rules: { 'no-console': 'off' } },
+  {
+    files: ['src/database/seed.ts', 'src/database/seed-demo.ts', 'scripts/**'],
+    rules: { 'no-console': 'off' },
+  },
 ];

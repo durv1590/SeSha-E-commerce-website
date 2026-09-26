@@ -3,6 +3,11 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { Providers } from '@/components/Providers';
 
+// The header/footer show live, admin-managed data (categories, settings), so shop pages
+// render per request. API responses are cached (Next data cache + API Redis), keeping
+// this fast, and nothing is ever baked in at build time when the API may be offline.
+export const dynamic = 'force-dynamic';
+
 export default function ShopLayout({ children }: { children: ReactNode }) {
   return (
     <Providers>

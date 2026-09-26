@@ -26,8 +26,11 @@ services:
       API_PORT: 4000
       # Cloudflare → nginx (edge) → api: nginx overwrites X-Forwarded-For with the client IP.
       TRUST_PROXY_HOPS: 1
+      MEDIA_LOCAL_DIR: /app/uploads
       DATABASE_URL: postgresql://${POSTGRES_USER:-seshakart}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-seshakart}?schema=public
       REDIS_URL: redis://redis:6379
+    volumes:
+      - media:/app/uploads
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }
@@ -51,3 +54,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  media:

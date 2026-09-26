@@ -1,10 +1,12 @@
 import type { INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
+import { static as serveStatic } from 'express';
 import helmet from 'helmet';
 import { csrfProtection } from './auth/csrf.middleware';
 import { requestId } from './common/middleware/request-id.middleware';
 import { allowedOrigins, type Env } from './config/env';
+import { StorageService } from './storage/storage.service';
 
 export const API_PREFIX = 'api';
 
@@ -35,5 +37,26 @@ export function configureApp(app: INestApplication, env: Env): void {
     maxAge: 600,
   });
   app.setGlobalPrefix(API_PREFIX);
+
+  // Local media driver: immutable, content-addressed files. Never directory listings,
+  // dotfiles or execution; a strict CSP neutralises any active content.
+  if (env.MEDIA_DRIVER === 'local') {
+    const storage = app.get(StorageService);
+    app.use(
+      `/${API_PREFIX}/media`,
+      (_req: unknown, res: { setHeader(k: string, v: string): void }, next: () => void) => {
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+        next();
+      },
+      serveStatic(storage.localDir, {
+        immutable: true,
+        maxAge: '365d',
+        index: false,
+        dotfiles: 'deny',
+        fallthrough: true,
+        redirect: false,
+      }),
+    );
+  }
   app.enableShutdownHooks();
 }

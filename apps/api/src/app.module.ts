@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor';
 import { RedisThrottlerStorage } from './common/throttle/redis-throttler.storage';
@@ -14,6 +15,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { RedisModule } from './redis/redis.module';
 import { RedisService } from './redis/redis.service';
 import { SettingsModule } from './settings/settings.module';
+import { StorageModule } from './storage/storage.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -24,6 +26,7 @@ import { UsersModule } from './users/users.module';
     AuditModule,
     SettingsModule,
     MessagingModule,
+    StorageModule,
     ThrottlerModule.forRootAsync({
       inject: [ENV, RedisService],
       useFactory: (env: Env, redis: RedisService) => ({
@@ -39,6 +42,7 @@ import { UsersModule } from './users/users.module';
     }),
     AuthModule,
     UsersModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
   providers: [

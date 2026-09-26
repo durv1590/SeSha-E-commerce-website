@@ -24,7 +24,8 @@
     "db:seed": "pnpm --filter @seshakart/api seed",
     "db:studio": "pnpm --filter @seshakart/api prisma:studio",
     "db:check": "pnpm --filter @seshakart/api prisma:check",
-    "db:new": "pnpm --filter @seshakart/api prisma:new"
+    "db:new": "pnpm --filter @seshakart/api prisma:new",
+    "db:seed:demo": "pnpm --filter @seshakart/api seed:demo"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

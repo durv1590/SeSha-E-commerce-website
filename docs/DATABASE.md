@@ -97,6 +97,14 @@ Prisma ignores CHECK constraints, expression indexes and partial indexes, so the
 future migrations. Plain-column indexes, including trigram indexes, must be declared in the schema,
 otherwise the next generated migration would drop them.
 
+### Product aggregates (triggers)
+
+`products.min_price`, `min_price_mrp`, `max_discount_pct` and `available_stock` are
+**maintained by PostgreSQL triggers** on `product_variants` and `inventory`. Every write path keeps
+them correct automatically: catalogue edits, checkout reservations, returns and direct SQL. Listing
+pages filter and sort on them without joining variants and inventory. Never write these columns
+from application code. `test/database.spec.ts` covers the triggers.
+
 ## Local setup
 
 ```bash
@@ -136,8 +144,22 @@ Never edit a migration that has already been applied in any shared environment. 
 - It creates the first **SUPER_ADMIN** from `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`, hashed with
   argon2id. It never changes an existing admin's password. In production both variables are required,
   and the password must meet the password policy.
-- It never creates fake customers, orders or reviews. A clearly labelled demo catalogue arrives with
-  the catalogue phase.
+- It never creates fake customers, orders or reviews.
+
+### Demo catalogue (development, QA and staging only)
+
+`pnpm db:seed:demo` builds a labelled demo store:
+
+- 30 categories (3 levels), 9 **fictional** brands marked "(demo)" and 39 products with realistic
+  Indian pricing, GST slabs, HSN codes, variants and stock (including low-stock and out-of-stock
+  cases).
+- 5 banners and 5 homepage sections.
+- **Generated demo images** (Lucide line icons in brand colours, stamped "DEMO IMAGE").
+
+It seeds **no reviews or ratings**. `soldCount` values exist only to demonstrate "Best sellers"
+ordering. Re-running replaces the demo data. `pnpm db:seed:demo --remove` deletes every demo record
+and image. **Run the remove command before launch.** The command refuses to run with
+`NODE_ENV=production` unless `ALLOW_DEMO_SEED=true` (staging).
 
 ## Tests
 

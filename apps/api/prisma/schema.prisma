@@ -362,9 +362,14 @@ model Product {
   isCodAvailable   Boolean       @default(true) @map("is_cod_available")
   metaTitle        String?       @map("meta_title")
   metaDescription  String?       @map("meta_description")
-  /// Denormalised from active variants for fast listing sort/filter; maintained by the catalogue service.
+  /// Denormalised from ACTIVE variants for fast listing sort/filter. Maintained by
+  /// database triggers (see the product_aggregates migration) — never write directly.
   minPrice         Int           @default(0) @map("min_price")
+  /// MRP of the cheapest active variant (shown next to minPrice on listing cards).
+  minPriceMrp      Int           @default(0) @map("min_price_mrp")
   maxDiscountPct   Int           @default(0) @map("max_discount_pct")
+  /// Sum of (stock − reserved) over active variants. Trigger-maintained.
+  availableStock   Int           @default(0) @map("available_stock")
   /// Aggregated from APPROVED reviews only.
   ratingAvg        Float         @default(0) @map("rating_avg")
   ratingCount      Int           @default(0) @map("rating_count")
@@ -388,6 +393,8 @@ model Product {
   @@index([status, publishedAt(sort: Desc)])
   @@index([status, soldCount(sort: Desc)])
   @@index([status, isFeatured])
+  @@index([status, availableStock])
+  @@index([status, maxDiscountPct(sort: Desc)])
   /// Trigram index for typo-tolerant search and autocomplete.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
   @@map("products")

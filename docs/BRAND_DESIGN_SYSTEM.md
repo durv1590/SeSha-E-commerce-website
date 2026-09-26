@@ -131,8 +131,15 @@ The unit test in `packages/ui/src/tokens.test.ts` checks every approved text and
 | Discount      | Inter          | `text-discount`                | 13 px, `success-text`          | 600    |
 | Badge         | Inter          | `text-badge`                   | 11 px, uppercase, +4% tracking | 700    |
 
-- Fonts are self-hosted through `next/font`. There are no runtime requests to Google, and
-  fallbacks are size-adjusted to prevent layout shift.
+- Fonts are **self-hosted from the repository** (`apps/web/src/app/fonts/`, SIL OFL 1.1 licences
+  included) through `next/font/local`. Builds never depend on reaching Google Fonts, and fallbacks
+  are size-adjusted to prevent layout shift.
+- **The rupee sign (₹, U+20B9) is not in the Latin font subset**; it sits in Latin-Extended. Each
+  family therefore has a tiny extra "rupee" face (1.2 KB for Inter, 3.6 KB for Montserrat) with
+  `unicode-range: U+20B9`, fetched only when a ₹ is on the page. Without it, every price symbol
+  would render in a fallback system font. To regenerate the faces from the Fontsource
+  Latin-Extended files, run
+  `pyftsubset <family>-latin-ext-wght-normal.woff2 --unicodes=U+20B9 --flavor=woff2 --layout-features='*'`.
 - Body text never goes below 16 px. That also stops iOS from zooming in on form inputs.
 - Prices use tabular figures so amounts line up in lists and the cart.
 - Headings use `text-wrap: balance` and paragraphs use `pretty`.

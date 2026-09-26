@@ -61,6 +61,13 @@ const envSchema = z
     MAIL_FROM: z.string().default('SeShaKart <no-reply@seshakart.com>'),
     /** SMS delivery for mobile OTPs. "console" logs codes (dev); "none" disables mobile OTP. */
     SMS_PROVIDER: z.enum(['console', 'none']).default('console'),
+
+    /** Where uploaded/generated media lives. "local" = disk (single server / dev); "s3" arrives with the admin phase. */
+    MEDIA_DRIVER: z.enum(['local']).default('local'),
+    /** Local media directory (absolute, or relative to the API package). */
+    MEDIA_LOCAL_DIR: z.string().default('uploads'),
+    /** Public URL prefix for media, e.g. https://cdn.seshakart.com (CDN) or /api/media (default). */
+    MEDIA_PUBLIC_BASE: z.string().default('/api/media'),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

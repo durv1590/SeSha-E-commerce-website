@@ -11,8 +11,8 @@ export class Envelope<T> implements ApiSuccess<T> {
   ) {}
 }
 
-export function paginated<T>(items: T[], total: number, page: number, pageSize: number) {
-  return new Envelope(items, {
+export function paginated<T>(data: T, total: number, page: number, pageSize: number): Envelope<T> {
+  return new Envelope(data, {
     page,
     pageSize,
     total,

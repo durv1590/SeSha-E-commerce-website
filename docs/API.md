@@ -79,5 +79,37 @@ Indian address fields: `name`, `phone` (10-digit mobile), `line1`, `line2?`, `la
 | ------ | ------------------ | ---- | ----------------------------------------------------------------------------------------------------- |
 | GET    | `/settings/public` | –    | Store name, tagline, support contacts, free-shipping threshold, COD availability. Cacheable for 60 s. |
 
-Catalogue, search, cart, checkout, orders, payments and admin endpoints are documented here as
-their phases land.
+### Catalogue (public, CDN-cacheable: `Cache-Control: public, max-age=60, stale-while-revalidate=300`)
+
+| Method | Path                        | Description                                                                                                                                                             |
+| ------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/home`                     | Homepage: active hero and promo banners (within their date window), featured categories, admin-configured product sections (empty ones are omitted) and featured brands |
+| GET    | `/categories`               | Active category tree (3 levels). Inactive categories hide their whole subtree.                                                                                          |
+| GET    | `/categories/:slug`         | Category detail with breadcrumbs, children and SEO copy                                                                                                                 |
+| GET    | `/brands` · `/brands/:slug` | Active brands, or one brand                                                                                                                                             |
+| GET    | `/products`                 | Listing: filters, sort, pagination and facets (below)                                                                                                                   |
+| GET    | `/products/:slug`           | Product detail: variants with per-variant availability, images, specifications, policies and breadcrumbs. Drafts and archived products return 404.                      |
+| GET    | `/products/:slug/related`   | Up to 12 products from the same category                                                                                                                                |
+| GET    | `/media/*`                  | Stored images (local media driver): immutable caching and `CSP: sandbox`                                                                                                |
+
+**Listing query** (`/products`). The same parameters appear in storefront URLs:
+
+| Param              | Example               | Meaning                                                                             |
+| ------------------ | --------------------- | ----------------------------------------------------------------------------------- |
+| `category`         | `audio`               | Category slug, including all its sub-categories                                     |
+| `brand`            | `aurora-sound,voltix` | One or more brand slugs                                                             |
+| `min`, `max`       | `500`, `5000`         | Price range in **rupees** (converted to paise internally)                           |
+| `discount`         | `30`                  | Minimum discount %                                                                  |
+| `rating`           | `4`                   | Minimum average rating                                                              |
+| `inStock`          | `1`                   | Only products with available stock                                                  |
+| `featured`         | `1`                   | Featured products only                                                              |
+| `sort`             | `popular`             | `popular`, `newest`, `price_asc`, `price_desc`, `discount`, `rating` or `relevance` |
+| `page`, `pageSize` | `2`, `24`             | Page size is at most 60                                                             |
+
+The response is `data: { items: ProductSummary[], facets }` plus `meta`. **Facets** give brand
+and category counts and the price range. Each facet ignores its **own** filter, so shoppers can
+widen a selection. `ProductSummary.price` and `mrp` belong to the cheapest active variant.
+Ratings are only ever aggregated from approved reviews.
+
+Search, cart, checkout, orders, payments and admin endpoints are documented here as their phases
+land.
