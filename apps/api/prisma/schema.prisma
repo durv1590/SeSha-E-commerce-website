@@ -219,15 +219,17 @@ model User {
 
 /// Refresh-token session. Only a SHA-256 hash of the token is stored.
 model Session {
-  id               String    @id @default(cuid())
-  userId           String    @map("user_id")
-  refreshTokenHash String    @unique @map("refresh_token_hash")
-  userAgent        String?   @map("user_agent")
-  ip               String?
-  expiresAt        DateTime  @map("expires_at")
-  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
-  revokedAt        DateTime? @map("revoked_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id                       String    @id @default(cuid())
+  userId                   String    @map("user_id")
+  refreshTokenHash         String    @unique @map("refresh_token_hash")
+  /// The hash this session rotated away from — lets reuse of an old token be detected.
+  previousRefreshTokenHash String?   @unique @map("previous_refresh_token_hash")
+  userAgent                String?   @map("user_agent")
+  ip                       String?
+  expiresAt                DateTime  @map("expires_at")
+  lastUsedAt               DateTime  @default(now()) @map("last_used_at")
+  revokedAt                DateTime? @map("revoked_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

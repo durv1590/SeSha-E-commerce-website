@@ -24,6 +24,8 @@ services:
     env_file: ${ENV_FILE:-../.env.production}
     environment:
       API_PORT: 4000
+      # Cloudflare → nginx (edge) → api: nginx overwrites X-Forwarded-For with the client IP.
+      TRUST_PROXY_HOPS: 1
       DATABASE_URL: postgresql://${POSTGRES_USER:-seshakart}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-seshakart}?schema=public
       REDIS_URL: redis://redis:6379
     depends_on:
@@ -35,8 +37,16 @@ services:
     env_file: ${ENV_FILE:-../.env.production}
     environment:
       API_INTERNAL_URL: http://api:4000
-    ports: ['3000:3000']
     depends_on: [api]
+    restart: unless-stopped
+  # Edge proxy: /api/* → api (with the real client IP), everything else → web.
+  # Put TLS / Cloudflare in front of this port.
+  edge:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/seshakart.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ['80:80']
+    depends_on: [api, web]
     restart: unless-stopped
 volumes:
   pgdata:

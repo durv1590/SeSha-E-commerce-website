@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { AppException } from '../src/common/filters/all-exceptions.filter';
 import { ZodBody, ZodQuery } from '../src/common/validation/zod.pipe';
 import { createTestApp } from './helpers/app';
+import { browser } from './helpers/client';
 
 const signupSchema = z.object({ email: emailSchema, name: z.string().min(2) });
 
@@ -116,9 +117,10 @@ describe('API foundation (integration)', () => {
 
   describe('Zod validation pipe', () => {
     it('returns 422 with field details for invalid input', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/test/signup')
-        .send({ email: 'nope', name: 'A' })
+      const res = await (
+        await browser(app)
+      )
+        .post('/api/test/signup', { email: 'nope', name: 'A' })
         .expect(422);
       expect(res.body.error.code).toBe('VALIDATION_FAILED');
       expect(res.body.error.details.map((d: { path: string }) => d.path).sort()).toEqual([
@@ -128,9 +130,14 @@ describe('API foundation (integration)', () => {
     });
 
     it('strips unknown fields (no mass assignment) and normalises values', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/test/signup')
-        .send({ email: ' Buyer@Example.COM ', name: 'Asha', role: 'SUPER_ADMIN' })
+      const res = await (
+        await browser(app)
+      )
+        .post('/api/test/signup', {
+          email: ' Buyer@Example.COM ',
+          name: 'Asha',
+          role: 'SUPER_ADMIN',
+        })
         .expect(201);
       expect(res.body.data).toEqual({ email: 'buyer@example.com', name: 'Asha' });
     });

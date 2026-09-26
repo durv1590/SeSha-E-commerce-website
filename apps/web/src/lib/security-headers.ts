@@ -7,7 +7,14 @@
  * every other directive strict. Payment and analytics origins are added in the
  * phases that introduce them. See docs/SECURITY.md.
  */
-export function buildContentSecurityPolicy(opts: { isDev: boolean; apiOrigin?: string }): string {
+export interface HeaderOptions {
+  isDev: boolean;
+  /** Site is served over HTTPS: enables HSTS and upgrade-insecure-requests. */
+  https?: boolean;
+  apiOrigin?: string;
+}
+
+export function buildContentSecurityPolicy(opts: HeaderOptions): string {
   const connect = ["'self'", opts.apiOrigin].filter(Boolean).join(' ');
   const directives: Record<string, string> = {
     'default-src': "'self'",
@@ -23,11 +30,11 @@ export function buildContentSecurityPolicy(opts: { isDev: boolean; apiOrigin?: s
     'form-action': "'self'",
   };
   const policy = Object.entries(directives).map(([k, v]) => `${k} ${v}`);
-  if (!opts.isDev) policy.push('upgrade-insecure-requests');
+  if (opts.https ?? !opts.isDev) policy.push('upgrade-insecure-requests');
   return policy.join('; ');
 }
 
-export function securityHeaders(opts: { isDev: boolean; apiOrigin?: string }) {
+export function securityHeaders(opts: HeaderOptions) {
   const headers = [
     { key: 'Content-Security-Policy', value: buildContentSecurityPolicy(opts) },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -39,7 +46,7 @@ export function securityHeaders(opts: { isDev: boolean; apiOrigin?: string }) {
     },
     { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   ];
-  if (!opts.isDev) {
+  if (opts.https ?? !opts.isDev) {
     headers.push({
       key: 'Strict-Transport-Security',
       value: 'max-age=63072000; includeSubDomains; preload',

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { buttonVariants } from '@seshakart/ui';
 import { BrandIcon, type BrandIconName } from '@/components/brand/BrandIcon';
-import { Logo } from '@/components/brand/Logo';
 
 const PILLARS: { icon: BrandIconName; title: string; text: string }[] = [
   { icon: 'trust', title: 'Trusted', text: 'Genuine products and secure payments' },
@@ -13,7 +12,7 @@ const PILLARS: { icon: BrandIconName; title: string; text: string }[] = [
 // design system end to end.
 export default function HomePage() {
   return (
-    <main className="flex min-h-dvh flex-col">
+    <>
       <section className="relative overflow-hidden bg-navy">
         <span
           aria-hidden="true"
@@ -24,7 +23,6 @@ export default function HomePage() {
           className="absolute -right-4 top-0 hidden h-full w-10 skew-x-[-25deg] bg-accent/70 md:block"
         />
         <div className="container-page relative flex flex-col items-start gap-6 py-section">
-          <Logo tone="reversed" height={44} priority />
           <h1 className="max-w-2xl text-display text-text-inverse">
             Smart Shopping, <span className="text-accent">Better Living</span>
           </h1>
@@ -32,12 +30,22 @@ export default function HomePage() {
             SeShaKart is getting ready. More choices, more value and fast delivery — launching soon
             at www.seshakart.com.
           </p>
-          <a
-            href="mailto:durvesh15aug@gmail.com"
-            className={buttonVariants({ variant: 'accent', size: 'lg' })}
-          >
-            Contact us
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/register" className={buttonVariants({ variant: 'accent', size: 'lg' })}>
+              Create your account
+            </Link>
+            <Link
+              href="/login"
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'lg',
+                className:
+                  'border-text-inverse/40 bg-transparent text-text-inverse hover:border-accent hover:text-accent',
+              })}
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -60,21 +68,6 @@ export default function HomePage() {
           </div>
         ))}
       </section>
-
-      <footer className="mt-auto border-t border-border bg-surface">
-        <div className="container-page flex flex-col gap-2 py-6 text-small text-text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} SeShaKart Pvt. Ltd.</p>
-          <p className="flex flex-wrap gap-x-3 gap-y-1">
-            <a href="mailto:durvesh15aug@gmail.com">durvesh15aug@gmail.com</a>
-            <a href="tel:+918218397819" className="whitespace-nowrap">
-              +91 82183 97819
-            </a>
-          </p>
-          {process.env.NODE_ENV !== 'production' && (
-            <Link href="/design-system">Design system</Link>
-          )}
-        </div>
-      </footer>
-    </main>
+    </>
   );
 }

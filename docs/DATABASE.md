@@ -115,7 +115,9 @@ extension, which is a trusted extension, so the database owner can install it.
 ## Changing the schema
 
 1. Edit `schema.prisma`.
-2. `pnpm db:migrate --name describe_change` creates and applies a migration (development only).
+2. `pnpm db:migrate --name describe_change` creates and applies a migration interactively. In
+   non-interactive environments (CI, containers, agents), run `pnpm db:new describe_change`
+   (requires `SHADOW_DATABASE_URL`), review the SQL, then run `pnpm db:deploy`.
 3. For anything Prisma can't express (a CHECK or expression index), run
    `pnpm db:migrate --create-only --name …`, add the SQL to the generated file, then run
    `pnpm db:migrate` to apply it.

@@ -1,6 +1,17 @@
 import { allowedOrigins, loadEnv } from './env';
 
-const DB = { DATABASE_URL: 'postgresql://u:p@localhost:5432/seshakart_test' };
+const DB = {
+  DATABASE_URL: 'postgresql://u:p@localhost:5432/seshakart_test',
+  JWT_SECRET: 'j'.repeat(40),
+  SESSION_SECRET: 's'.repeat(40),
+};
+const PROD = {
+  ...DB,
+  NODE_ENV: 'production',
+  REDIS_URL: 'redis://r:6379',
+  SMTP_HOST: 'smtp.example.com',
+  SMS_PROVIDER: 'none',
+};
 
 describe('loadEnv', () => {
   it('applies safe defaults', () => {
@@ -15,15 +26,23 @@ describe('loadEnv', () => {
   });
 
   it('requires REDIS_URL in production only', () => {
-    expect(() => loadEnv({ ...DB, NODE_ENV: 'production' })).toThrow(/REDIS_URL/);
-    expect(loadEnv({ ...DB, NODE_ENV: 'production', REDIS_URL: 'redis://r:6379' }).REDIS_URL).toBe(
-      'redis://r:6379',
-    );
+    expect(() => loadEnv({ ...PROD, REDIS_URL: undefined })).toThrow(/REDIS_URL/);
+    expect(loadEnv(PROD).REDIS_URL).toBe('redis://r:6379');
     expect(loadEnv({ ...DB, NODE_ENV: 'development' }).REDIS_URL).toBeUndefined();
   });
 
+  it('enforces production-only safety rules', () => {
+    expect(() => loadEnv({ ...PROD, SMTP_HOST: undefined })).toThrow(/SMTP_HOST/);
+    expect(() => loadEnv({ ...PROD, SMS_PROVIDER: 'console' })).toThrow(/SMS_PROVIDER/);
+    expect(() => loadEnv({ ...PROD, SESSION_SECRET: PROD.JWT_SECRET })).toThrow(/must differ/);
+  });
+
+  it('requires strong secrets', () => {
+    expect(() => loadEnv({ ...DB, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
+  });
+
   it('rejects malformed values with a readable message', () => {
-    expect(() => loadEnv({ API_PORT: 'abc', APP_URL: 'not a url' })).toThrow(
+    expect(() => loadEnv({ ...DB, API_PORT: 'abc', APP_URL: 'not a url' })).toThrow(
       /API_PORT[\s\S]*APP_URL/,
     );
   });

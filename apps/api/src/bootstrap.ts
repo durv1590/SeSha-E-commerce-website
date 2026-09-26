@@ -1,6 +1,8 @@
 import type { INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { csrfProtection } from './auth/csrf.middleware';
 import { requestId } from './common/middleware/request-id.middleware';
 import { allowedOrigins, type Env } from './config/env';
 
@@ -23,6 +25,8 @@ export function configureApp(app: INestApplication, env: Env): void {
       crossOriginResourcePolicy: { policy: 'same-site' },
     }),
   );
+  app.use(cookieParser());
+  app.use(csrfProtection(env));
   app.enableCors({
     origin: allowedOrigins(env),
     credentials: true,

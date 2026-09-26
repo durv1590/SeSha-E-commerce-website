@@ -34,15 +34,49 @@ const envSchema = z
     /** Global rate limit: requests per window per client IP. */
     RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(1).default(60),
     RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(300),
+    /** Kill switch for rate limiting — only for automated tests; always true in production. */
+    RATE_LIMIT_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+
+    /** Signs access tokens (HS256). ≥ 32 random characters; rotate by redeploying. */
+    JWT_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    /** Keys the HMAC used to hash refresh tokens and OTP codes at rest. ≥ 32 characters. */
+    SESSION_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+    /** Optional parent domain for cookies (e.g. ".seshakart.com"); unset = host-only (recommended). */
+    COOKIE_DOMAIN: z.string().optional(),
+
+    /** Email delivery. Without SMTP_HOST, emails are logged (development/test only). */
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().default(587),
+    SMTP_SECURE: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    MAIL_FROM: z.string().default('SeShaKart <no-reply@seshakart.com>'),
+    /** SMS delivery for mobile OTPs. "console" logs codes (dev); "none" disables mobile OTP. */
+    SMS_PROVIDER: z.enum(['console', 'none']).default('console'),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['REDIS_URL'],
-        message: 'is required in production (shared cache and rate limiting)',
-      });
-    }
+    if (env.NODE_ENV !== 'production') return;
+    const require = (path: keyof typeof env, ok: boolean, message: string) => {
+      if (!ok) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+    };
+    require('REDIS_URL', Boolean(
+      env.REDIS_URL,
+    ), 'is required in production (shared cache and rate limiting)');
+    require('SMTP_HOST', Boolean(
+      env.SMTP_HOST,
+    ), 'is required in production (OTP and order emails)');
+    require('SMS_PROVIDER', env.SMS_PROVIDER !==
+      'console', 'cannot be "console" in production (codes would only be logged)');
+    require('JWT_SECRET', env.JWT_SECRET !== env.SESSION_SECRET, 'must differ from SESSION_SECRET');
+    require('RATE_LIMIT_ENABLED', env.RATE_LIMIT_ENABLED, 'cannot be disabled in production');
   });
 
 export type Env = z.infer<typeof envSchema>;

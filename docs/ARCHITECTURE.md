@@ -54,6 +54,10 @@
 | 17  | **Redis optional locally, mandatory in production**                                                               | Contributors can run the API with only PostgreSQL. Production gets shared cache and rate limits across instances. Env validation enforces this at boot.                                           |
 | 18  | **Cache failures degrade, never break**                                                                           | If Redis is unavailable, `CacheService` falls through to the database and the throttler keeps working. Readiness reports `redis: down`.                                                           |
 | 19  | **Settings in the database, validated by shared Zod schemas**                                                     | Shipping fees, COD rules and store details are admin-editable without a deploy. A corrupt row falls back to defaults rather than breaking checkout.                                               |
+| 20  | **Own auth, no third-party identity service**: argon2id, short JWT plus rotating refresh sessions, and OTP        | Full control over Indian mobile-first flows (OTP), data residency and cost. The session store allows immediate revocation. Social login can be added later as another way to create a session.    |
+| 21  | **Browsers never hold tokens in JavaScript** (HttpOnly cookies); native apps use Bearer tokens                    | Limits the impact of XSS. The API serves both kinds of client from the same endpoints.                                                                                                            |
+| 22  | **Production edge proxy routes `/api/*` directly to the API**                                                     | Next.js rewrites don't forward client IPs. Per-IP rate limits and lockouts need the real address, and it also saves a hop. The rewrite stays as the development fallback.                         |
+| 23  | **Refresh token scoped to `/api/auth`, plus a non-secret `sk_sess` marker**                                       | The refresh token never reaches page routes. The marker lets middleware renew sessions through a redirect to the API.                                                                             |
 
 ## Request lifecycle (API)
 
@@ -128,3 +132,42 @@ checks responsive behaviour, and records decisions here.
   - Nest guards don't run for unmatched routes, so floods against unknown URLs must be absorbed at the
     edge (Cloudflare rate limiting). This will be documented in SECURITY.md.
   - The default `pg_trgm` threshold misses short-word typos; search uses an explicit 0.5.
+
+### Phase 4: authentication and customer system ✅
+
+- **API auth:**
+  - Register by email and/or mobile.
+  - Password login with lockout, and passwordless one-time codes (email or SMS).
+  - Rotating refresh sessions with reuse detection.
+  - Logout and logout-everywhere, and password reset.
+  - Contact verification.
+  - Native-app mode (Bearer tokens).
+  - Global `AuthGuard` enforcing `@Authenticated()` and `@RequirePermissions()` against the
+    current role.
+  - Double-submit CSRF.
+  - Per-route rate limits.
+  - Email (SMTP) and SMS provider abstraction with branded templates.
+- **Customer account API:** profile, password change, active devices, addresses (Indian fields;
+  default handling; limit of 20) and notifications. Every query is scoped by user id.
+- **Web:**
+  - API clients for server and browser, with CSRF handling and a single shared refresh.
+  - Middleware protecting `/account`, `/checkout` and `/admin`, with transparent session renewal.
+  - Site header (account menu, mobile drawer) and footer, both driven by admin settings.
+  - Pages: `/login` (password or one-time code), `/register`, `/forgot-password`, and `/account`
+    with overview, profile (with verification), addresses, security and notifications.
+- **Tests:** 110 API tests (190 across the repository) pass, covering:
+  - Enumeration resistance, lockout, OTP hashing, attempts and resend limits.
+  - Refresh-token reuse detection, tampered and `alg: none` JWTs, native-app mode.
+  - CSRF (including the app-header bypass attempt), RBAC, and admin-route permission coverage.
+  - IDOR on addresses, sessions and notifications, and mass-assignment of role.
+  - Open-redirect protection.
+- **Browser QA:** 18 end-to-end checks and 9 pages × 16 widths with no overflow.
+- **Bugs found and fixed:**
+  - Refresh calls with an empty body failed validation.
+  - Account pages overflowed horizontally on phones (grid track sized to the nav's content).
+  - HTTPS-only headers broke client navigation on http builds, and the root `.env` was ignored
+    by Next.js (cached env).
+  - The build fetched from the API.
+  - The footer showed a double full stop.
+- **Security finding (documented, addressed through the edge proxy):** the `/api` rewrite hides
+  client IPs.

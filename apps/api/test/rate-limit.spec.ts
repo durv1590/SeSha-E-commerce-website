@@ -26,7 +26,7 @@ async function hammer(app: INestApplication, times: number): Promise<number[]> {
 describe('rate limiting (integration)', () => {
   it('returns 429 with the standard error envelope after the limit (in-memory store)', async () => {
     const app = await createTestApp({
-      env: { RATE_LIMIT_MAX: '3', RATE_LIMIT_WINDOW_SECONDS: '60' },
+      env: { RATE_LIMIT_MAX: '3', RATE_LIMIT_WINDOW_SECONDS: '60', RATE_LIMIT_ENABLED: 'true' },
       controllers: [ProbeController],
     });
     try {
@@ -49,6 +49,7 @@ describe('rate limiting (integration)', () => {
     const env = {
       RATE_LIMIT_MAX: '3',
       RATE_LIMIT_WINDOW_SECONDS: '60',
+      RATE_LIMIT_ENABLED: 'true',
       REDIS_URL: TEST_REDIS_URL!,
     };
     const opts = { env, controllers: [ProbeController] };
@@ -61,6 +62,31 @@ describe('rate limiting (integration)', () => {
       expect(ready.body.data.checks.redis).toBe('up');
     } finally {
       await Promise.all([a.close(), b.close()]);
+    }
+  });
+});
+
+describe('auth rate limits (integration)', () => {
+  it('applies the stricter per-route limit to login (10/min per IP)', async () => {
+    const app = await createTestApp({ env: { RATE_LIMIT_ENABLED: 'true' } });
+    try {
+      const { browser } = await import('./helpers/client');
+      const c = await browser(app);
+      const statuses: number[] = [];
+      for (let i = 0; i < 12; i++) {
+        statuses.push(
+          (
+            await c.post('/api/auth/login', {
+              identifier: 'x@example.com',
+              password: 'wrong-pass-1',
+            })
+          ).status,
+        );
+      }
+      expect(statuses.slice(0, 10).every((s) => s === 401)).toBe(true);
+      expect(statuses.slice(10)).toEqual([429, 429]);
+    } finally {
+      await app.close();
     }
   });
 });

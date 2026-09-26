@@ -21,21 +21,30 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## API (`apps/api`)
 
-| Variable                    | Required | Default                 | Description                                                                                                                  |
-| --------------------------- | -------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`                  | no       | `development`           | `development`, `test` or `production`.                                                                                       |
-| `API_PORT`                  | no       | `4000`                  | HTTP port.                                                                                                                   |
-| `APP_URL`                   | prod     | `http://localhost:3000` | Storefront origin, used for CORS and email links.                                                                            |
-| `CORS_ORIGINS`              | no       | (empty)                 | Extra comma-separated allowed origins.                                                                                       |
-| `TRUST_PROXY_HOPS`          | no       | `0`                     | Number of proxies in front of the API, so client IPs used for rate limiting are correct.                                     |
-| `LOG_LEVEL`                 | no       | `log`                   | `error`, `warn`, `log`, `debug` or `verbose`.                                                                                |
-| `DATABASE_URL`              | **yes**  | –                       | PostgreSQL connection string. Add `?connection_limit=N` to size the pool.                                                    |
-| `DB_SLOW_QUERY_MS`          | no       | `250`                   | Queries at or above this duration are logged (without parameters).                                                           |
-| `REDIS_URL`                 | **prod** | (none)                  | Shared cache and rate-limit store. Required in production; locally the app falls back to in-memory stores.                   |
-| `RATE_LIMIT_WINDOW_SECONDS` | no       | `60`                    | Global rate-limit window.                                                                                                    |
-| `RATE_LIMIT_MAX`            | no       | `300`                   | Requests per window per client IP. Sensitive routes add stricter limits.                                                     |
-| `SEED_ADMIN_EMAIL`          | seed     | –                       | Email of the first SUPER_ADMIN created by `pnpm db:seed`.                                                                    |
-| `SEED_ADMIN_PASSWORD`       | seed     | –                       | Its initial password (8+ chars with a letter and a number; use a long random value). It is never overwritten on later seeds. |
+| Variable                                                                  | Required | Default                              | Description                                                                                                                                                         |
+| ------------------------------------------------------------------------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                                                                | no       | `development`                        | `development`, `test` or `production`.                                                                                                                              |
+| `API_PORT`                                                                | no       | `4000`                               | HTTP port.                                                                                                                                                          |
+| `APP_URL`                                                                 | prod     | `http://localhost:3000`              | Storefront origin, used for CORS and email links.                                                                                                                   |
+| `CORS_ORIGINS`                                                            | no       | (empty)                              | Extra comma-separated allowed origins.                                                                                                                              |
+| `TRUST_PROXY_HOPS`                                                        | no       | `0`                                  | Proxies in front of the API that set `X-Forwarded-For`. **Production behind `infra/nginx`: `1`.** This is needed for per-IP rate limits. See SECURITY.md.           |
+| `LOG_LEVEL`                                                               | no       | `log`                                | `error`, `warn`, `log`, `debug` or `verbose`.                                                                                                                       |
+| `DATABASE_URL`                                                            | **yes**  | –                                    | PostgreSQL connection string. Add `?connection_limit=N` to size the pool.                                                                                           |
+| `DB_SLOW_QUERY_MS`                                                        | no       | `250`                                | Queries at or above this duration are logged (without parameters).                                                                                                  |
+| `REDIS_URL`                                                               | **prod** | (none)                               | Shared cache and rate-limit store. Required in production; locally the app falls back to in-memory stores.                                                          |
+| `RATE_LIMIT_WINDOW_SECONDS`                                               | no       | `60`                                 | Global rate-limit window.                                                                                                                                           |
+| `RATE_LIMIT_MAX`                                                          | no       | `300`                                | Requests per window per client IP. Sensitive routes add stricter limits.                                                                                            |
+| `RATE_LIMIT_ENABLED`                                                      | no       | `true`                               | Only for automated tests. Production refuses `false`.                                                                                                               |
+| `JWT_SECRET`                                                              | **yes**  | –                                    | Signs access tokens (HS256). At least 32 random characters, and different from `SESSION_SECRET`.                                                                    |
+| `SESSION_SECRET`                                                          | **yes**  | –                                    | HMAC key for stored refresh-token and OTP hashes. At least 32 random characters.                                                                                    |
+| `ACCESS_TOKEN_TTL_MINUTES`                                                | no       | `15`                                 | Access-token lifetime (1–60).                                                                                                                                       |
+| `REFRESH_TOKEN_TTL_DAYS`                                                  | no       | `30`                                 | Session lifetime without activity (1–90).                                                                                                                           |
+| `COOKIE_DOMAIN`                                                           | no       | (host-only)                          | Only set this to share sessions across subdomains.                                                                                                                  |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` | **prod** | – / 587 / false                      | Any SMTP provider (SES, SendGrid, Zoho…). Without a host, emails are logged (development).                                                                          |
+| `MAIL_FROM`                                                               | no       | `SeShaKart <no-reply@seshakart.com>` | Sender address. It must be authorised (SPF, DKIM, DMARC) at the provider.                                                                                           |
+| `SMS_PROVIDER`                                                            | **prod** | `console`                            | `console` prints SMS to the log (development). `none` disables mobile codes. Production rejects `console`. A DLT-registered gateway adapter is added before launch. |
+| `SEED_ADMIN_EMAIL`                                                        | seed     | –                                    | Email of the first SUPER_ADMIN created by `pnpm db:seed`.                                                                                                           |
+| `SEED_ADMIN_PASSWORD`                                                     | seed     | –                                    | Its initial password (8+ chars with a letter and a number; use a long random value). It is never overwritten on later seeds.                                        |
 
 ### Tests and tooling
 
@@ -47,6 +56,6 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## Planned (added with their phases)
 
-`JWT_SECRET`, `SESSION_SECRET`, `PAYMENT_*`, `S3_*`,
+`PAYMENT_*`, `S3_*`,
 `MEDIA_BASE_URL`, `SMTP_*`, `MAIL_FROM`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_META_PIXEL_ID`.
 Each will be documented here, with its validation rules, when its module is implemented.

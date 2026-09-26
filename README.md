@@ -6,8 +6,8 @@ Production e-commerce platform for the Indian market: a Next.js storefront and a
 a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
 data and caching.
 
-> **Status:** Phases 1–3 are complete: architecture, the design system and the brand, and the
-> database and backend foundation. See the
+> **Status:** Phases 1–4 are complete: architecture, the design system and brand, the database
+> and backend foundation, and authentication with customer accounts. See the
 > [roadmap](#roadmap) for what comes next.
 
 ## Repository layout
@@ -47,39 +47,43 @@ pnpm db:seed                  # default settings + first super admin
 pnpm dev                      # web on :3000, API on :4000
 ```
 
-- Storefront: http://localhost:3000
+- Storefront: http://localhost:3000. Sign in at `/login`. In development, sign-in codes are printed
+  in the API log.
 - Design system reference: http://localhost:3000/design-system (development only)
 - API health: http://localhost:4000/api/health. The same endpoint is also served through the web proxy at http://localhost:3000/api/health.
 
 ## Common commands
 
-| Command             | What it does                                             |
-| ------------------- | -------------------------------------------------------- |
-| `pnpm dev`          | Build shared packages, run API and web in watch mode     |
-| `pnpm build`        | Production build of packages, API and web                |
-| `pnpm test`         | Unit and integration tests in every workspace            |
-| `pnpm lint`         | ESLint in every workspace                                |
-| `pnpm typecheck`    | TypeScript in every workspace                            |
-| `pnpm format`       | Prettier                                                 |
-| `pnpm infra:up`     | Start local PostgreSQL and Redis (Docker)                |
-| `pnpm brand:assets` | Regenerate the provisional logo set from the brand board |
-| `pnpm db:migrate`   | Create and apply a migration (development)               |
-| `pnpm db:deploy`    | Apply pending migrations                                 |
-| `pnpm db:check`     | Fail if migrations and schema.prisma disagree (CI)       |
-| `pnpm db:seed`      | Idempotent base seed                                     |
-| `pnpm db:studio`    | Browse data with Prisma Studio                           |
+| Command              | What it does                                             |
+| -------------------- | -------------------------------------------------------- |
+| `pnpm dev`           | Build shared packages, run API and web in watch mode     |
+| `pnpm build`         | Production build of packages, API and web                |
+| `pnpm test`          | Unit and integration tests in every workspace            |
+| `pnpm lint`          | ESLint in every workspace                                |
+| `pnpm typecheck`     | TypeScript in every workspace                            |
+| `pnpm format`        | Prettier                                                 |
+| `pnpm infra:up`      | Start local PostgreSQL and Redis (Docker)                |
+| `pnpm brand:assets`  | Regenerate the provisional logo set from the brand board |
+| `pnpm db:migrate`    | Create and apply a migration (development)               |
+| `pnpm db:new <name>` | Generate a migration non-interactively (CI, containers)  |
+| `pnpm db:deploy`     | Apply pending migrations                                 |
+| `pnpm db:check`      | Fail if migrations and schema.prisma disagree (CI)       |
+| `pnpm db:seed`       | Idempotent base seed                                     |
+| `pnpm db:studio`     | Browse data with Prisma Studio                           |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) covers system design, key decisions and the phase plan.
 - [Environment](docs/ENVIRONMENT.md) lists every environment variable.
 - [Database](docs/DATABASE.md) covers the data model, constraints, migrations and seed.
+- [API](docs/API.md) is the REST reference and client conventions.
+- [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF and deployment assumptions.
 - [Brand design system](docs/BRAND_DESIGN_SYSTEM.md) covers the logo, colour, type, components and accessibility rules.
 - [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
 - [Brand identity brief](docs/brand/brand-identity-brief.md)
 
-These docs arrive in the phases that introduce the matching features: `API.md`,
-`DEPLOYMENT.md`, `SECURITY.md`, `TESTING.md` and `ADMIN_GUIDE.md`.
+These docs arrive in the phases that introduce the matching features: `DEPLOYMENT.md`,
+`TESTING.md` and `ADMIN_GUIDE.md`.
 
 ## Roadmap
 
@@ -88,8 +92,8 @@ These docs arrive in the phases that introduce the matching features: `API.md`,
 | 1     | Architecture & repository setup      | ✅ Done |
 | 2     | Design system & brand implementation | ✅ Done |
 | 3     | Database & backend foundation        | ✅ Done |
-| 4     | Authentication & customer system     | Next    |
-| 5     | Product / catalog / category system  |         |
+| 4     | Authentication & customer system     | ✅ Done |
+| 5     | Product / catalog / category system  | Next    |
 | 6     | Search & filtering                   |         |
 | 7     | Cart & wishlist                      |         |
 | 8     | Checkout & payment architecture      |         |
