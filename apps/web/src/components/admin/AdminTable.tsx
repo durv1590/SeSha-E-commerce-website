@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 
 /**
  * A data table that scrolls sideways on small screens. The scroll container is
- * focusable and labelled so keyboard users can scroll it too.
+ * focusable and labelled so keyboard users can scroll it too, and positioned so
+ * visually hidden (absolutely positioned) text inside can't widen the page.
  */
 export function AdminTable({
   label,
@@ -20,7 +21,7 @@ export function AdminTable({
       aria-label={label}
       tabIndex={0}
       className={cn(
-        'overflow-x-auto rounded-card border border-border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        'relative overflow-x-auto rounded-card border border-border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
         className,
       )}
     >

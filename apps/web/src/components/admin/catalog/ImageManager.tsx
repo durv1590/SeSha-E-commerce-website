@@ -191,6 +191,8 @@ export function ImageManager({
           accept={ACCEPT}
           multiple
           className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
           disabled={room <= 0 || uploading > 0}
           onChange={(e) => void upload(e.target.files)}
         />

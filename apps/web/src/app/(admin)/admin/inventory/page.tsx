@@ -13,7 +13,7 @@ import { requireStaff } from '@/lib/auth/staff';
 export const metadata: Metadata = { title: 'Inventory' };
 
 const TABS = [
-  ['all', 'All variants'],
+  ['all', 'All'],
   ['low', 'Low stock'],
   ['out', 'Out of stock'],
 ] as const;
@@ -58,7 +58,7 @@ export default async function InventoryPage({
               href={href({ stock: k === 'all' ? null : k })}
               aria-current={q.stock === k ? 'page' : undefined}
               className={cn(
-                'whitespace-nowrap rounded-sm px-3 py-1.5 text-small font-medium no-underline',
+                'whitespace-nowrap rounded-sm px-2 py-1.5 text-center text-small font-medium no-underline sm:px-3',
                 q.stock === k
                   ? 'bg-navy text-text-inverse'
                   : 'text-text-primary hover:bg-surface-muted',
@@ -68,7 +68,12 @@ export default async function InventoryPage({
             </Link>
           ))}
         </nav>
-        <form method="get" role="search" aria-label="Search stock" className="flex gap-2">
+        <form
+          method="get"
+          role="search"
+          aria-label="Search stock"
+          className="flex w-full gap-2 sm:w-auto"
+        >
           {q.stock !== 'all' && <input type="hidden" name="stock" value={q.stock} />}
           <label htmlFor="inv-q" className="sr-only">
             Product name or SKU
@@ -78,7 +83,7 @@ export default async function InventoryPage({
             name="q"
             defaultValue={q.q ?? ''}
             placeholder="Product name or SKU"
-            className="h-control-md w-56 rounded-input border border-border-strong bg-surface px-3 text-small focus:border-primary focus:shadow-focus focus:outline-none"
+            className="h-control-md min-w-0 flex-1 rounded-input sm:w-56 sm:flex-none border border-border-strong bg-surface px-3 text-small focus:border-primary focus:shadow-focus focus:outline-none"
           />
           <button type="submit" className={buttonVariants({ variant: 'outline', size: 'md' })}>
             Search

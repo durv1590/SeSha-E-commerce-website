@@ -270,7 +270,7 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRowDto[]; ca
                       />
                       {m.label}
                     </span>
-                    <span className="text-caption text-text-muted">{m.hint}</span>
+                    <span className="text-caption text-text-secondary">{m.hint}</span>
                   </label>
                 ))}
               </div>

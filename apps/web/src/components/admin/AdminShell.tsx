@@ -112,7 +112,10 @@ export function AdminShell({ user, children }: { user: MeDto; children: ReactNod
       >
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 overflow-y-auto border-r border-border bg-surface p-4 lg:flex">
+      <aside
+        aria-label="Admin sidebar"
+        className="sticky top-0 hidden h-dvh flex-col gap-6 overflow-y-auto border-r border-border bg-surface p-4 lg:flex"
+      >
         <Link href="/admin" className="rounded-sm px-2 py-1" aria-label="SeShaKart admin home">
           <Logo height={32} />
         </Link>

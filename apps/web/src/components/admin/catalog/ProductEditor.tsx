@@ -122,15 +122,23 @@ export function ProductEditor({
     disabled: !canWrite,
   });
 
+  /** Focuses the first invalid field in page order (or its section when it has no input). */
   const focusFirst = (errs: Record<string, string>) => {
-    const first = Object.keys(errs)[0];
-    if (!first) return;
+    const keys = Object.keys(errs);
+    if (!keys.length || !formRef.current) return;
+    const form = formRef.current;
     requestAnimationFrame(() => {
-      const el =
-        formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`) ??
-        formRef.current?.querySelector<HTMLElement>(`[data-error-anchor="${first.split('.')[0]}"]`);
-      el?.focus();
-      el?.scrollIntoView({ block: 'center' });
+      const candidates = keys.flatMap((k) => {
+        const el =
+          form.querySelector<HTMLElement>(`[name="${k}"]`) ??
+          form.querySelector<HTMLElement>(`[data-error-anchor="${k.split('.')[0]}"]`);
+        return el ? [el] : [];
+      });
+      const first = candidates.sort((a, b) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+      )[0];
+      first?.focus();
+      first?.scrollIntoView({ block: 'center' });
     });
   };
 
@@ -571,7 +579,7 @@ export function ProductEditor({
           </Section>
         </div>
 
-        <aside className="flex flex-col gap-5">
+        <aside aria-label="Product settings" className="flex flex-col gap-5">
           {product && (
             <Section id="sec-status" title="Visibility">
               <p className="text-small text-text-secondary">
