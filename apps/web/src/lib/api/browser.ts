@@ -56,6 +56,7 @@ export async function apiRequest<T>(
   method: Method,
   path: string,
   body?: unknown,
+  extraHeaders: Record<string, string> = {},
 ): Promise<ApiResult<T>> {
   const send = async () =>
     fetch(`/api${path}`, {
@@ -65,6 +66,7 @@ export async function apiRequest<T>(
         Accept: 'application/json',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(method !== 'GET' ? { 'x-csrf-token': await csrfToken() } : {}),
+        ...extraHeaders,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });

@@ -84,7 +84,12 @@ migrations. `test/database.spec.ts` proves each one rejects bad writes:
 
 Other database objects:
 
-- `order_number_seq`: a sequence that produces human-friendly order numbers.
+- `order_number_seq`: a sequence that produces human-friendly order numbers
+  (`SK` + India date `YYMMDD` + at least 6 digits).
+- `orders.idempotency_key` (unique): the same place-order request never creates two orders.
+- Order stock flow, all recorded in `inventory_transactions`: `RESERVE` at placement
+  (`reserved += q` only if `stock - reserved >= q`), then `SALE` at confirmation (`stock -= q`,
+  `reserved -= q`, `sold_count += q`) or `RELEASE` when an unpaid order expires.
 - `sk_product_search_document()`: an IMMUTABLE function that builds a weighted full-text document
   (name A, tags B, short description C, highlights D). It backs a GIN expression index.
 - Trigram GIN indexes (`pg_trgm`) on product, brand and category names and on popular searches.

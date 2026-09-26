@@ -46,6 +46,11 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 | `MEDIA_DRIVER`                                                            | no       | `local`                              | Media storage. `local` stores files on disk and serves them at `/api/media`, which suits a single server with a persistent volume. An S3-compatible driver arrives with admin uploads. |
 | `MEDIA_LOCAL_DIR`                                                         | no       | `uploads`                            | Local media directory, absolute or relative to `apps/api`. In Docker it is the `media` volume.                                                                                         |
 | `MEDIA_PUBLIC_BASE`                                                       | no       | `/api/media`                         | Public URL prefix for media. Set it to a CDN origin (e.g. `https://cdn.seshakart.com`) in front of the media route.                                                                    |
+| `PAYMENT_PROVIDER`                                                        | **prod** | `mock`                               | `razorpay` or `mock`. The mock simulates payments for development and tests; production rejects it.                                                                                    |
+| `PAYMENT_KEY_ID`                                                          | gateway  | –                                    | Razorpay key id (`rzp_test_…` / `rzp_live_…`). The only payment value that reaches browsers.                                                                                           |
+| `PAYMENT_KEY_SECRET`                                                      | gateway  | –                                    | Razorpay key secret: API calls and checkout signature checks. **Server-side only.**                                                                                                    |
+| `PAYMENT_WEBHOOK_SECRET`                                                  | gateway  | –                                    | The secret set on the Razorpay webhook; verifies every webhook. **Server-side only.**                                                                                                  |
+| `PAYMENT_API_BASE`                                                        | no       | `https://api.razorpay.com`           | Gateway API base URL override (sandboxes, tests).                                                                                                                                      |
 | `ALLOW_DEMO_SEED`                                                         | no       | –                                    | `true` lets `pnpm db:seed:demo` run with `NODE_ENV=production`. Use it on **staging only**.                                                                                            |
 | `SEED_ADMIN_EMAIL`                                                        | seed     | –                                    | Email of the first SUPER_ADMIN created by `pnpm db:seed`.                                                                                                                              |
 | `SEED_ADMIN_PASSWORD`                                                     | seed     | –                                    | Its initial password (8+ chars with a letter and a number; use a long random value). It is never overwritten on later seeds.                                                           |
@@ -60,6 +65,15 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## Planned (added with their phases)
 
-`PAYMENT_*`, `S3_*`,
-`MEDIA_BASE_URL`, `SMTP_*`, `MAIL_FROM`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_META_PIXEL_ID`.
+`S3_*`, `MEDIA_BASE_URL`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_META_PIXEL_ID`.
 Each will be documented here, with its validation rules, when its module is implemented.
+
+## Setting up Razorpay
+
+1. In the Razorpay dashboard, create API keys (test mode first) and set `PAYMENT_PROVIDER=razorpay`,
+   `PAYMENT_KEY_ID` and `PAYMENT_KEY_SECRET`.
+2. Add a webhook pointing to `https://www.seshakart.com/api/webhooks/payments/razorpay` with a
+   strong secret (`PAYMENT_WEBHOOK_SECRET`) and these events: `payment.captured`, `payment.failed`,
+   `order.paid`, `refund.processed`, `refund.failed`.
+3. Keep the secrets in the platform's secret manager. They never go in `.env.example`, the
+   repository or any `NEXT_PUBLIC_*` variable.

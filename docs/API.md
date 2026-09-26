@@ -203,4 +203,82 @@ qualifying stays visible with `valid: false` and a reason, and gives no discount
 | DELETE | `/wishlist/:productId`              |                  | Removes. Returns the ids                                                                                           |
 | POST   | `/wishlist/:productId/move-to-cart` | `{ variantId? }` | Adds to the cart and removes from the wishlist. Products with options need a `variantId` (`VARIANT_REQUIRED`, 409) |
 
-Checkout, orders, payments and admin endpoints are documented here as their phases land.
+### Checkout: `/checkout` (guests and signed-in customers)
+
+| Method | Path                            | Description                                                                                                  |
+| ------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| POST   | `/checkout/quote`               | `{ deliveryMethod?, paymentMethod? }` → cart, delivery and payment options (with COD eligibility) and totals |
+| POST   | `/checkout/orders`              | Places the order (below). 10/min                                                                             |
+| GET    | `/checkout/orders/:orderNumber` | Order summary for the confirmation and payment pages: the customer, or a guest sending `X-Order-Token`       |
+
+**Placing an order** (`POST /checkout/orders`):
+
+```jsonc
+{
+  "contact": { "email": "asha@example.com", "phone": "9876543210" }, // guests; customers default to their account
+  "shippingAddressId": "…" /* or */,
+  "shippingAddress": {
+    "name": "…",
+    "phone": "…",
+    "line1": "…",
+    "city": "…",
+    "state": "…",
+    "pincode": "411001",
+  },
+  "saveAddress": true, // customers: add a typed address to the address book
+  "billingSameAsShipping": true, // else "billingAddress": { … }
+  "deliveryMethod": "STANDARD", // or "EXPRESS"
+  "paymentMethod": "PREPAID", // or "COD"
+  "expectedTotal": 154800, // the total the shopper saw (paise)
+  "idempotencyKey": "random 16–64 chars, new per attempt",
+  "notes": "Leave with the guard",
+}
+```
+
+The server re-prices the cart and refuses with **`PRICE_CHANGED`** (409) if the total differs from
+`expectedTotal`. Then, in one transaction, it creates the order with line snapshots (name, SKU, HSN,
+price, GST and coupon share), reserves stock with a conditional update per line
+(`INSUFFICIENT_STOCK` if it sold out meanwhile), claims the coupon atomically (total and
+per-customer limits, guests matched by email), and removes the bought lines from the cart.
+
+- **COD**: the order is `CONFIRMED` straight away (stock sold, confirmation email).
+- **Online**: the order is `PAYMENT_PENDING`, stock is held for `stockReservationMinutes` (default
+  30), and the response carries a `payment` session (gateway order id, amount, public key id,
+  prefill). No secret is ever in it.
+- The **same `idempotencyKey`** returns the same order (double clicks, retries). Guests receive a
+  `guestAccessToken`, bound to their cart credential and shown once, to view the order.
+
+Other errors: `CART_EMPTY`, `CART_NEEDS_ATTENTION`, `COUPON_INVALID` (409), `CONTACT_REQUIRED`,
+`PAYMENT_METHOD_UNAVAILABLE`, `DELIVERY_UNAVAILABLE`, `ADDRESS_NOT_FOUND`, and `PAYMENT_UNAVAILABLE`
+(502, gateway down: nothing is created and the cart is untouched).
+
+### Payments: `/payments`
+
+| Method | Path                           | Body                                                             | Description                                                                                                         |
+| ------ | ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/payments/verify`             | `{ orderNumber, providerOrderId, providerPaymentId, signature }` | After the gateway checkout succeeds. The HMAC signature is checked with the key secret, then the order is confirmed |
+| POST   | `/payments/failed`             | `{ orderNumber, providerOrderId?, code?, description? }`         | The checkout failed or was closed; the order stays payable until the hold expires                                   |
+| POST   | `/payments/retry`              | `{ orderNumber }`                                                | New payment session for a pending order (`null` if a previous attempt turns out to be paid)                         |
+| POST   | `/payments/mock/complete`      | `{ orderNumber, outcome: "success" \| "failure" }`               | **Mock gateway only** (development/tests; 404 otherwise): simulates the customer paying                             |
+| POST   | `/webhooks/payments/:provider` | raw gateway payload                                              | Gateway webhooks, verified by HMAC over the **raw body** (`X-Razorpay-Signature`); CSRF-exempt                      |
+
+All order and payment calls need the customer's session or the guest's `X-Order-Token`; other
+orders return 404 (never 403, so order numbers can't be probed).
+
+**How a payment settles.** Whichever arrives first confirms the order (reserved units become
+sold, confirmation email); the rest are no-ops:
+
+1. the browser's `/payments/verify` (signature check);
+2. the webhook (`payment.captured` / `order.paid`), stored by `(provider, eventId)` so repeats are
+   ignored; failed processing is left unmarked so the gateway's retry runs it again;
+3. the **sweeper** (every minute): asks the gateway about pending orders older than 5 minutes
+   (lost webhooks) and, once the hold expires, cancels unpaid orders, releasing stock and the
+   coupon. If the gateway can't be reached, cancellation waits rather than risk cancelling a paid
+   order.
+
+A captured amount different from the order total never confirms it (flagged for review). Money that
+arrives after an order was cancelled is **refunded automatically**. Refunds (full or partial) go
+through the gateway; the order moves to `REFUND_INITIATED` and then `REFUNDED` when the gateway
+reports the refund processed.
+
+Orders, returns and admin endpoints are documented here as their phases land.

@@ -88,13 +88,31 @@ app header (tested). Payment and logistics webhooks (Phase 8) use signature veri
 - Search analytics store no user, session or IP, and never store queries that look like emails,
   phone or card-like numbers, or URLs (tested). Recent searches stay in the shopper's browser.
 
+## Payments
+
+- Gateway secrets (`PAYMENT_KEY_SECRET`, `PAYMENT_WEBHOOK_SECRET`) live only in the API's
+  environment. Browsers receive the public key id and a gateway order id, nothing else.
+  Production refuses to start with the mock gateway or without all credentials (tested).
+- Card, UPI and bank details are entered in the gateway's own window; SeShaKart never sees them.
+- A payment is accepted only with a valid HMAC signature: `order_id|payment_id` with the key
+  secret for the browser callback, and the raw request body with the webhook secret for
+  webhooks, both compared in constant time (tested, including tampered bodies and swapped
+  secrets). Webhooks are CSRF-exempt because they are authenticated by signature.
+- The captured amount must equal the order total, or the order is not confirmed.
+- Totals are computed server-side; the client's `expectedTotal` only stops silent price changes.
+- Order numbers are sequential, so order access is by ownership or a guest token (HMAC-stored,
+  bound to the guest's cart credential); anything else returns 404. Place-order is limited to
+  10/min per IP, and each order needs a fresh idempotency key.
+- Webhook payloads are stored for audit and idempotency (they contain no card data).
+
 ## HTTP security headers
 
 - **API:** Helmet with `default-src 'none'`, `frame-ancestors 'none'`, `nosniff` and a
   same-site CORP. `X-Powered-By` is removed.
 - **Web:**
   - CSP: `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`,
-    `form-action 'self'`.
+    `form-action 'self'`. The only third-party origins are Razorpay Checkout's: its script
+    (`checkout.razorpay.com`), its payment frame and the endpoints it calls (tested).
   - `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and COOP.
   - HSTS (2 years, preload) and `upgrade-insecure-requests` whenever the site URL is https.
 - **Known trade-off:** `script-src 'unsafe-inline'` is required by Next.js inline bootstrap

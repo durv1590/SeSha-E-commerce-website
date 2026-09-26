@@ -72,6 +72,12 @@
 | 35  | **Guest carts use an opaque token cookie scoped to `/api`**, stored as an HMAC                                                         | No account needed to shop; a database leak can't be replayed into a cart. The cart page therefore renders in the browser.                                                                         |
 | 36  | **Carts flag problems instead of silently changing them**                                                                              | A price or stock change never alters what the shopper asked for without telling them; checkout is blocked until they choose.                                                                      |
 | 37  | **Wishlist is for signed-in customers only**                                                                                           | The spec asks for server-side storage; guest hearts lead to sign-in and back.                                                                                                                     |
+| 38  | **Payment gateway behind an interface**; Razorpay over plain REST, no SDK                                                              | A second gateway is one more class. Plain `fetch` keeps secrets and timeouts under our control. A signing mock exercises the real verification and webhook code in development and tests.         |
+| 39  | **Stock is reserved at order time, sold at confirmation**                                                                              | Conditional UPDATEs can't oversell under concurrency; unpaid orders release their hold automatically. COD confirms immediately.                                                                   |
+| 40  | **Three independent paths settle a payment** (browser callback, webhook, sweeper)                                                      | Any one of them is enough, all are idempotent under a row lock, so a closed tab or a lost webhook never loses a paid order.                                                                       |
+| 41  | **The client sends the total it saw; the server refuses a different one**                                                              | Prices can change between viewing and paying; the shopper confirms the new total instead of being charged silently.                                                                               |
+| 42  | **Gateway order created before the database transaction**                                                                              | A slow gateway never holds stock locks; an unused gateway order is harmless.                                                                                                                      |
+| 43  | **Guest order access by a token bound to the guest's cart credential**                                                                 | Guests can see and pay for their order without an account; a leaked idempotency key alone can't retrieve it.                                                                                      |
 
 ## Request lifecycle (API)
 
@@ -280,3 +286,42 @@ checks responsive behaviour, and records decisions here.
     existed).
   - The account sidebar and the footer were both a navigation landmark called "Account".
   - The cart's sign-in link was 4.47:1 contrast.
+
+### Phase 8: checkout and payments ✅
+
+- **API:**
+  - Payment gateway interface; Razorpay (orders, checkout and webhook HMAC signatures, payment
+    lookup, refunds) with timeouts and safe errors; a signing mock gateway, refused in
+    production, and the environment requires all credentials for a real gateway.
+  - Checkout quote: standard/express delivery, online/COD payment with COD eligibility (store
+    switch, per-product flag, order limit) and fees.
+  - Placing orders in one transaction: re-pricing with a changed-total guard, idempotency keys,
+    atomic stock reservation, atomic coupon claims, line and address snapshots, cart clearing,
+    status history; COD confirms immediately.
+  - Payments settle from the browser callback, the signed and de-duplicated webhook, or the
+    sweeper (reconciles with the gateway, cancels expired orders, releases stock and coupons);
+    retry after failure; amount checks; automatic refund of late payments; partial and full
+    refunds; order confirmation emails.
+  - A migration for order idempotency keys; 20 integration tests (stock and coupon races,
+    idempotency, forged signatures, webhook duplicates and wrong amounts, expiry,
+    reconciliation, late payments, refunds, gateway outage, guest access) and 6 gateway tests,
+    including a local HTTP server standing in for Razorpay.
+- **Web:**
+  - `/checkout` for guests and customers: contact, saved or new address (optionally saved),
+    billing address, delivery speed, payment method with reasons when COD isn't available,
+    delivery notes and a live summary; server field errors mapped onto fields.
+  - Razorpay Checkout loaded on demand (CSP allows only its origins), and a clearly labelled
+    test-payment dialog for the mock gateway.
+  - `/checkout/success` (polls briefly while a payment is being confirmed) and `/checkout/failed`
+    (retry while stock is held; clear cancellation message afterwards).
+- **QA:** browser runs of guest COD, online payment failure then retry, cancelled payment, and a
+  signed-in customer with a saved address, express delivery and COD (totals checked in the
+  database); axe clean; no overflow at 16 widths.
+- **Bugs found and fixed:**
+  - A guest's order token could be derived from the idempotency key alone; it is now bound to
+    the guest's cart credential.
+  - The place-order button could be pressed while a new total was loading (the server refused
+    it safely); it now waits for the quote.
+  - The form-level error stayed after the shopper corrected the fields.
+  - A description list on the confirmation page held a paragraph (invalid markup).
+  - The concurrency test now accepts both correct refusals, depending on timing.

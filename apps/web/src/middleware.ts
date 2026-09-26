@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PROTECTED = ['/account', '/checkout', '/admin'];
+// /checkout is open: guests can check out without an account.
+const PROTECTED = ['/account', '/admin'];
 const CSRF_COOKIE = 'sk_csrf';
 
 function randomToken(): string {

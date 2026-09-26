@@ -19,6 +19,13 @@ describe('security headers', () => {
     );
   });
 
+  it('allows Razorpay Checkout and nothing else from third parties', () => {
+    const csp = buildContentSecurityPolicy({ isDev: false });
+    expect(csp).toMatch(/script-src 'self' 'unsafe-inline' https:\/\/checkout\.razorpay\.com;/);
+    expect(csp).toContain('frame-src https://api.razorpay.com https://checkout.razorpay.com;');
+    expect(csp).toContain("default-src 'self'");
+  });
+
   it('only enables HSTS outside development', () => {
     const names = (isDev: boolean) => securityHeaders({ isDev }).map((h) => h.key);
     expect(names(false)).toContain('Strict-Transport-Security');
