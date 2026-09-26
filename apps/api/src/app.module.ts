@@ -14,9 +14,11 @@ import type { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { MessagingModule } from './messaging/messaging.module';
+import { OrdersModule } from './orders/orders.module';
 import { RedisModule } from './redis/redis.module';
 import { RedisService } from './redis/redis.service';
 import { SettingsModule } from './settings/settings.module';
+import { ShippingModule } from './shipping/shipping.module';
 import { StorageModule } from './storage/storage.module';
 import { UsersModule } from './users/users.module';
 
@@ -29,6 +31,7 @@ import { UsersModule } from './users/users.module';
     SettingsModule,
     MessagingModule,
     StorageModule,
+    ShippingModule,
     ThrottlerModule.forRootAsync({
       inject: [ENV, RedisService],
       useFactory: (env: Env, redis: RedisService) => ({
@@ -47,6 +50,7 @@ import { UsersModule } from './users/users.module';
     CatalogModule,
     CartModule,
     CheckoutModule,
+    OrdersModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -6,6 +6,7 @@ import type {
 } from '@seshakart/types';
 import type { CommerceSettings } from '@seshakart/validation';
 import { formatRupees } from '../cart/pricing';
+import type { PincodeAssessment } from '../shipping/estimate';
 
 export type DeliveryChoice = 'STANDARD' | 'EXPRESS';
 export type PaymentChoice = 'PREPAID' | 'COD';
@@ -21,6 +22,8 @@ export function checkoutOptions(
   choice: { delivery: DeliveryChoice; payment: PaymentChoice },
   /** Every product in the cart allows cash on delivery. */
   allCodEligible: boolean,
+  /** The delivery PIN code's assessment, once the address is known. */
+  pin: PincodeAssessment | null = null,
 ): {
   deliveryOptions: DeliveryOptionDto[];
   paymentOptions: PaymentOptionDto[];
@@ -41,7 +44,7 @@ export function checkoutOptions(
       label: 'Express delivery',
       estimate: '1–3 business days',
       fee: commerce.expressShippingFee,
-      available: commerce.expressEnabled,
+      available: commerce.expressEnabled && (pin?.expressAvailable ?? true),
     },
   ];
   const delivery = deliveryOptions.find((d) => d.method === choice.delivery)!;
@@ -51,6 +54,8 @@ export function checkoutOptions(
   let codReason: string | null = null;
   if (!commerce.codEnabled) codReason = 'Cash on delivery is currently unavailable.';
   else if (!allCodEligible) codReason = 'Some items in your cart can’t be paid for on delivery.';
+  else if (pin && !pin.codAvailable)
+    codReason = 'Cash on delivery isn’t available for this PIN code.';
   else if (beforeCod + commerce.codFee > commerce.codMaxOrderValue)
     codReason = `Cash on delivery is available on orders up to ${formatRupees(commerce.codMaxOrderValue)}.`;
 

@@ -18,6 +18,8 @@ import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
 import { SettingsService } from '../settings/settings.service';
+import type { PincodeAssessment } from '../shipping/estimate';
+import { ShippingService } from '../shipping/shipping.service';
 import { checkoutOptions } from './checkout-options';
 import { reserve, sell } from './inventory';
 import { guestTokenFor, hashGuestToken, type OrderAccess } from './order-access';
@@ -62,10 +64,15 @@ export class CheckoutService {
     private readonly carts: CartService,
     private readonly settings: SettingsService,
     private readonly payments: PaymentsService,
+    private readonly shippingRules: ShippingService,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  private async priced(snapshot: CartSnapshot, input: CheckoutQuoteInput) {
+  private async priced(
+    snapshot: CartSnapshot,
+    input: Pick<CheckoutQuoteInput, 'deliveryMethod' | 'paymentMethod'>,
+    pin: PincodeAssessment | null,
+  ) {
     const commerce = await this.settings.get('commerce');
     const productIds = [...new Set(snapshot.dto.items.map((i) => i.productId))];
     const codBlocked = productIds.length
@@ -78,18 +85,24 @@ export class CheckoutService {
       commerce,
       { delivery: input.deliveryMethod, payment: input.paymentMethod },
       codBlocked === 0,
+      pin,
     );
   }
 
   async quote(owner: CartOwner, input: CheckoutQuoteInput): Promise<CheckoutQuoteDto> {
     const snapshot = await this.carts.snapshot(owner);
-    const o = await this.priced(snapshot, input);
+    const pin = input.pincode ? await this.shippingRules.assess(input.pincode) : null;
+    const o = await this.priced(snapshot, input, pin);
     return {
       cart: snapshot.dto,
       deliveryOptions: o.deliveryOptions,
       paymentOptions: o.paymentOptions,
       totals: o.totals,
-      canPlaceOrder: snapshot.dto.canCheckout && o.deliveryAvailable && o.paymentAvailable,
+      canPlaceOrder:
+        snapshot.dto.canCheckout &&
+        o.deliveryAvailable &&
+        o.paymentAvailable &&
+        (pin?.serviceable ?? true),
     };
   }
 
@@ -124,7 +137,17 @@ export class CheckoutService {
         cart.coupon.message ?? 'Your coupon no longer applies. Remove it to continue.',
       );
 
-    const priced = await this.priced(snapshot, input);
+    // Where it's going decides whether we can deliver, and how.
+    const shipping = await this.shippingAddress(owner, input);
+    const pin = await this.shippingRules.assess(shipping.pincode);
+    if (!pin.serviceable)
+      throw new AppException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'NOT_SERVICEABLE',
+        'Sorry, we don’t deliver to this PIN code yet.',
+        [{ path: 'shippingAddress.pincode', message: 'We don’t deliver to this PIN code yet' }],
+      );
+    const priced = await this.priced(snapshot, input, pin);
     if (!priced.deliveryAvailable)
       throw new AppException(
         HttpStatus.UNPROCESSABLE_ENTITY,
@@ -147,7 +170,6 @@ export class CheckoutService {
       );
 
     const { contact, name } = await this.contactFor(owner, input);
-    const shipping = await this.shippingAddress(owner, input);
     const billing = input.billingSameAsShipping
       ? shipping
       : toAddress({ ...input.billingAddress!, country: 'IN' });
@@ -272,6 +294,10 @@ export class CheckoutService {
     );
 
     if (!prepaid) void this.payments.sendConfirmation(order.id);
+    if (owner.userId && input.saveAddress && input.shippingAddress)
+      await this.saveToAddressBook(owner.userId, input).catch((err: unknown) =>
+        this.logger.warn(`Could not save address: ${(err as Error).message}`),
+      );
     this.logger.log(`Order ${orderNumber} placed (${input.paymentMethod}, ${total} paise)`);
     return {
       orderNumber,
@@ -398,15 +424,19 @@ export class CheckoutService {
         );
       return toAddress(saved as unknown as Record<string, unknown>);
     }
-    const typed = toAddress({ ...input.shippingAddress!, country: 'IN' });
-    if (owner.userId && input.saveAddress) {
-      const count = await this.prisma.address.count({ where: { userId: owner.userId } });
-      if (count < ADDRESS_LIMIT)
-        await this.prisma.address.create({
-          data: { ...input.shippingAddress!, userId: owner.userId, isDefault: count === 0 },
-        });
-    }
-    return typed;
+    return toAddress({ ...input.shippingAddress!, country: 'IN' });
+  }
+
+  /** A typed checkout address joins the customer's address book (after the order succeeds). */
+  private async saveToAddressBook(userId: string, input: PlaceOrderInput): Promise<void> {
+    const count = await this.prisma.address.count({ where: { userId } });
+    if (count >= ADDRESS_LIMIT) return;
+    const a = input.shippingAddress!;
+    const duplicate = await this.prisma.address.findFirst({
+      where: { userId, line1: a.line1, pincode: a.pincode, name: a.name },
+    });
+    if (!duplicate)
+      await this.prisma.address.create({ data: { ...a, userId, isDefault: count === 0 } });
   }
 
   // ------------------------------------------------------------------ order view

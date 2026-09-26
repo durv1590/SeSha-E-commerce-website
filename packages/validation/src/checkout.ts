@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { addressSchema } from './account';
 import { idSchema } from './cart';
-import { emailSchema, indianMobileSchema, paiseSchema } from './primitives';
+import { emailSchema, indianMobileSchema, paiseSchema, pincodeSchema } from './primitives';
 
 export const DELIVERY_METHOD_VALUES = ['STANDARD', 'EXPRESS'] as const;
 export const PAYMENT_METHOD_VALUES = ['PREPAID', 'COD'] as const;
@@ -13,6 +13,8 @@ export type CheckoutAddressInput = z.infer<typeof checkoutAddressSchema>;
 export const checkoutQuoteSchema = z.object({
   deliveryMethod: z.enum(DELIVERY_METHOD_VALUES).default('STANDARD'),
   paymentMethod: z.enum(PAYMENT_METHOD_VALUES).default('PREPAID'),
+  /** Delivery PIN code, when known: decides express and cash-on-delivery availability. */
+  pincode: pincodeSchema.optional(),
 });
 export type CheckoutQuoteInput = z.infer<typeof checkoutQuoteSchema>;
 

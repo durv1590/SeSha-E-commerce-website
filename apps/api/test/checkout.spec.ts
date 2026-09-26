@@ -643,14 +643,15 @@ describe('checkout and payments (integration)', () => {
       const order = await orderOf(result.orderNumber);
       await payments.refund(order.id, { amount: 100_000, reason: 'Partial return' });
       let now = await orderOf(result.orderNumber);
-      expect(now.status).toBe('REFUND_INITIATED');
+      // A refund on an order still being fulfilled doesn't change its status.
+      expect(now.status).toBe('CONFIRMED');
       expect(now.payments[0]!.status).toBe('PARTIALLY_REFUNDED');
       await expect(
         payments.refund(order.id, { amount: 1_000_000, reason: 'Too much' }),
       ).rejects.toMatchObject({ code: 'REFUND_TOO_LARGE' });
       await payments.refund(order.id, { reason: 'Rest' });
       now = await orderOf(result.orderNumber);
-      expect(now.status).toBe('REFUNDED');
+      expect(now.status).toBe('CONFIRMED');
       expect(now.payments[0]!.status).toBe('REFUNDED');
       expect((await prisma.refund.findMany()).map((r) => r.amount).sort((a, b) => a - b)).toEqual([
         100_000, 299_800,

@@ -109,3 +109,38 @@ export function orderConfirmedEmail(o: OrderEmailData) {
   );
   return { subject, text, html };
 }
+
+export interface OrderUpdateData {
+  name: string;
+  orderNumber: string;
+  subject: string;
+  headline: string;
+  /** Plain-text paragraphs (escaped for HTML). */
+  paragraphs: string[];
+  orderUrl: string;
+  cta?: string;
+  /** Optional secondary link, e.g. carrier tracking. */
+  link?: { label: string; url: string };
+}
+
+/** Status updates: shipped, out for delivery, delivered, cancelled, refunds, returns. */
+export function orderUpdateEmail(o: OrderUpdateData) {
+  const text = [
+    `Hi ${o.name},`,
+    o.headline,
+    ...o.paragraphs,
+    o.link ? `${o.link.label}: ${o.link.url}` : '',
+    `View your order ${o.orderNumber}: ${o.orderUrl}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  const html = emailLayout(
+    o.subject,
+    `<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ${escapeHtml(o.name)},</p>
+<p style="margin:0 0 12px;font-size:15px;line-height:1.5"><strong>${escapeHtml(o.headline)}</strong></p>
+${o.paragraphs.map((p) => `<p style="margin:0 0 12px;font-size:14px;line-height:1.5">${escapeHtml(p)}</p>`).join('\n')}
+${o.link ? `<p style="margin:0 0 16px;font-size:14px"><a href="${escapeHtml(o.link.url)}" style="color:${colors.primary}">${escapeHtml(o.link.label)}</a></p>` : ''}
+<p style="margin:0"><a href="${escapeHtml(o.orderUrl)}" style="display:inline-block;background:${colors.primary};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">${escapeHtml(o.cta ?? 'View your order')}</a></p>`,
+  );
+  return { subject: o.subject, text, html };
+}

@@ -5,7 +5,8 @@
   "description": "SeShaKart REST API (NestJS).",
   "files": [
     "dist",
-    "prisma"
+    "prisma",
+    "assets"
   ],
   "scripts": {
     "build": "prisma generate && nest build",
@@ -42,6 +43,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "nodemailer": "^7.0.13",
+    "pdfkit": "^0.17.2",
     "prisma": "6.19.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -61,6 +63,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.18.0",
     "@types/nodemailer": "^7.0.12",
+    "@types/pdfkit": "^0.17.6",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",

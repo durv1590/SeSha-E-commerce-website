@@ -22,6 +22,11 @@ export const storeSettingsSchema = z.object({
     )
     .default(''),
   registeredAddress: z.string().max(300).default(''),
+  /**
+   * State of the GST registration. Decides the invoice tax split: CGST + SGST for
+   * deliveries within this state, IGST otherwise (treated as inter-state until set).
+   */
+  registeredState: z.string().trim().max(80).default(''),
 });
 export type StoreSettings = z.infer<typeof storeSettingsSchema>;
 
@@ -59,10 +64,32 @@ export const searchSettingsSchema = z.object({
 });
 export type SearchSettings = z.infer<typeof searchSettingsSchema>;
 
+const pinPrefix = z.string().regex(/^\d{1,6}$/, 'Use 1–6 digits');
+const dayRange = z
+  .object({ min: z.number().int().min(0).max(30), max: z.number().int().min(0).max(30) })
+  .refine((r) => r.min <= r.max, { message: 'min must not exceed max' });
+
+export const shippingSettingsSchema = z.object({
+  /** Business days (Mon–Sat) from order to delivery. */
+  standardDays: dayRange.default({ min: 3, max: 6 }),
+  expressDays: dayRange.default({ min: 1, max: 3 }),
+  /** PIN code prefixes that take longer: islands, the north-east, Jammu & Kashmir and Ladakh. */
+  remotePrefixes: z.array(pinPrefix).max(300).default(['744', '79', '18', '19']),
+  remoteExtraDays: z.number().int().min(0).max(15).default(2),
+  /** Express isn't offered to remote PIN codes. */
+  expressToRemote: z.boolean().default(false),
+  /** PIN code prefixes we can't deliver to at all. */
+  blockedPrefixes: z.array(pinPrefix).max(300).default([]),
+  /** PIN code prefixes where cash on delivery isn't offered. */
+  codBlockedPrefixes: z.array(pinPrefix).max(300).default(['744']),
+});
+export type ShippingSettings = z.infer<typeof shippingSettingsSchema>;
+
 export const SETTINGS_SCHEMAS = {
   store: storeSettingsSchema,
   commerce: commerceSettingsSchema,
   search: searchSettingsSchema,
+  shipping: shippingSettingsSchema,
 } as const;
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS;
 export type SettingsValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;

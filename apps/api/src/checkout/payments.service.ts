@@ -14,7 +14,7 @@ import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
 import { MessagingService } from '../messaging/messaging.service';
-import { orderConfirmedEmail } from '../messaging/templates';
+import { orderConfirmedEmail, orderUpdateEmail } from '../messaging/templates';
 import {
   GatewayError,
   PAYMENT_GATEWAY,
@@ -481,7 +481,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       include: { refunds: true },
       orderBy: { capturedAt: 'desc' },
     });
-    if (!payment?.providerPaymentId)
+    const manual = payment?.provider === 'cod';
+    if (!payment || (!manual && !payment.providerPaymentId))
       throw new AppException(
         HttpStatus.CONFLICT,
         'NOTHING_TO_REFUND',
@@ -498,11 +499,15 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         'The refund exceeds the amount paid.',
       );
 
-    const result = await this.gateway.refund({
-      providerPaymentId: payment.providerPaymentId,
-      amount,
-      notes: { orderId, reason: opts.reason.slice(0, 200) },
-    });
+    // Cash-on-delivery money goes back by bank transfer or UPI: staff complete it with
+    // the transaction reference (completeManualRefund).
+    const result = manual
+      ? { providerRefundId: null, status: 'pending' as const }
+      : await this.gateway.refund({
+          providerPaymentId: payment.providerPaymentId!,
+          amount,
+          notes: { orderId, reason: opts.reason.slice(0, 200) },
+        });
     const refund = await this.prisma.$transaction(async (tx) => {
       const row = await tx.refund.create({
         data: {
@@ -515,11 +520,12 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           status: result.status === 'failed' ? 'FAILED' : 'PENDING',
         },
       });
+      // Only orders that are over (cancelled, returned) move to REFUND_*; a goodwill or
+      // partial refund on an order still being fulfilled leaves its status alone.
       const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
       if (
         result.status !== 'failed' &&
-        order.status !== 'REFUND_INITIATED' &&
-        order.status !== 'REFUNDED'
+        (order.status === 'CANCELLED' || order.status === 'RETURNED')
       ) {
         await tx.order.update({ where: { id: orderId }, data: { status: 'REFUND_INITIATED' } });
         await tx.orderStatusHistory.create({
@@ -538,15 +544,51 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     return refund;
   }
 
+  /** Staff record that a manual (cash-on-delivery) refund was paid out. */
+  async completeManualRefund(refundId: string, reference: string, actorId: string | null) {
+    const refund = await this.prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { payment: true },
+    });
+    if (!refund) throw new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Refund not found.');
+    if (refund.payment.provider !== 'cod' || refund.status !== 'PENDING')
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'REFUND_NOT_MANUAL',
+        'Only pending manual refunds can be completed here.',
+      );
+    await this.prisma.refund.update({ where: { id: refundId }, data: { reference, actorId } });
+    await this.markRefundProcessed(refundId);
+  }
+
+  /** Cash collected on delivery becomes a captured payment (so it can be refunded). */
+  async recordCodCollected(
+    tx: Prisma.TransactionClient,
+    order: { id: string; grandTotal: number },
+  ) {
+    const existing = await tx.payment.findFirst({ where: { orderId: order.id, provider: 'cod' } });
+    if (existing || order.grandTotal <= 0) return;
+    await tx.payment.create({
+      data: {
+        orderId: order.id,
+        provider: 'cod',
+        method: 'cod',
+        amount: order.grandTotal,
+        status: 'CAPTURED',
+        capturedAt: new Date(),
+      },
+    });
+  }
+
   private async markRefundProcessed(refundId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const processed = await this.prisma.$transaction(async (tx) => {
       const refund = await tx.refund.findUniqueOrThrow({ where: { id: refundId } });
       await tx.$queryRaw`SELECT "id" FROM "orders" WHERE "id" = ${refund.orderId} FOR UPDATE`;
-      if (refund.status !== 'PROCESSED')
-        await tx.refund.update({
-          where: { id: refundId },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
+      if (refund.status === 'PROCESSED') return null;
+      await tx.refund.update({
+        where: { id: refundId },
+        data: { status: 'PROCESSED', processedAt: new Date() },
+      });
       const payment = await tx.payment.findUniqueOrThrow({
         where: { id: refund.paymentId },
         include: { refunds: true },
@@ -555,13 +597,15 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         .map((r) => (r.id === refundId ? { ...r, status: 'PROCESSED' as const } : r))
         .filter((r) => r.status === 'PROCESSED')
         .reduce((s, r) => s + r.amount, 0);
-      const full = done >= payment.amount;
       await tx.payment.update({
         where: { id: payment.id },
-        data: { status: full ? 'REFUNDED' : 'PARTIALLY_REFUNDED' },
+        data: { status: done >= payment.amount ? 'REFUNDED' : 'PARTIALLY_REFUNDED' },
       });
       const order = await tx.order.findUniqueOrThrow({ where: { id: refund.orderId } });
-      if (full && order.status !== 'REFUNDED') {
+      const stillPending = await tx.refund.count({
+        where: { orderId: order.id, status: 'PENDING', id: { not: refundId } },
+      });
+      if (order.status === 'REFUND_INITIATED' && stillPending === 0) {
         await tx.order.update({ where: { id: order.id }, data: { status: 'REFUNDED' } });
         await tx.orderStatusHistory.create({
           data: {
@@ -572,7 +616,39 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           },
         });
       }
+      return { order, amount: refund.amount };
     });
+    if (processed) void this.sendRefundEmail(processed.order, processed.amount);
+  }
+
+  private async sendRefundEmail(order: Order, amount: number): Promise<void> {
+    try {
+      const a = order.shippingAddress as Record<string, string | null>;
+      await this.messaging.sendEmail({
+        to: order.email,
+        ...orderUpdateEmail({
+          name: a.name ?? 'there',
+          orderNumber: order.orderNumber,
+          subject: `Refund processed for order ${order.orderNumber}`,
+          headline: `We’ve refunded ₹${(amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} for your order ${order.orderNumber}.`,
+          paragraphs: [
+            order.paymentMethod === 'COD'
+              ? 'The money has been sent to your bank account or UPI ID.'
+              : 'It goes back to your original payment method. Banks usually take 5–7 working days to show it.',
+          ],
+          orderUrl: this.orderUrl(order),
+        }),
+      });
+    } catch (err) {
+      this.logger.warn(`Refund email failed: ${(err as Error).message}`);
+    }
+  }
+
+  /** Customers see their orders in their account; guests use order tracking. */
+  orderUrl(order: { orderNumber: string; userId: string | null }): string {
+    return order.userId
+      ? `${this.env.APP_URL}/account/orders/${order.orderNumber}`
+      : `${this.env.APP_URL}/track-order?order=${order.orderNumber}`;
   }
 
   // ------------------------------------------------------------------ notifications
@@ -596,7 +672,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           lineTotal: i.lineTotal,
         })),
         address: [a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(', '),
-        orderUrl: `${this.env.APP_URL}/checkout/success?order=${order.orderNumber}`,
+        orderUrl: this.orderUrl(order),
       });
       await this.messaging.sendEmail({ to: order.email, ...email });
     } catch (err) {

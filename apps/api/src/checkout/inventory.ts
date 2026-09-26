@@ -91,3 +91,34 @@ export async function sell(
       data: { soldCount: { increment: line.quantity } },
     });
 }
+
+/**
+ * Puts sold units back into stock: a confirmed order cancelled before shipping
+ * (RESTOCK) or goods returned by the customer or the courier (RETURN).
+ */
+export async function restock(
+  tx: Tx,
+  line: { variantId: string; productId: string | null; quantity: number },
+  orderId: string,
+  type: 'RESTOCK' | 'RETURN',
+  reason: string,
+): Promise<void> {
+  const rows = await tx.$queryRaw<Row[]>`
+    UPDATE "inventory" SET "stock" = "stock" + ${line.quantity}, "updated_at" = now()
+    WHERE "variant_id" = ${line.variantId}
+    RETURNING "stock", "reserved"`;
+  if (!rows.length) return; // variant deleted since: nothing to put back
+  await tx.inventoryTransaction.create({
+    data: {
+      variantId: line.variantId,
+      orderId,
+      type,
+      quantity: line.quantity,
+      stockAfter: rows[0]!.stock,
+      reservedAfter: rows[0]!.reserved,
+      reason,
+    },
+  });
+  if (line.productId)
+    await tx.$executeRaw`UPDATE "products" SET "sold_count" = GREATEST("sold_count" - ${line.quantity}, 0) WHERE "id" = ${line.productId}`;
+}
