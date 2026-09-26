@@ -77,6 +77,11 @@ app header (tested). Payment and logistics webhooks (Phase 8) use signature veri
   internal fields are never serialised.
 - Errors: stack traces, SQL, file paths and constraint names never reach clients. Unexpected
   errors are logged server-side with a request id (tested).
+- Search text is reduced to `[a-z0-9]` words before it reaches `to_tsquery`, and every SQL value
+  is a bound parameter (`Prisma.sql`), so tsquery syntax and SQL in a query are plain text
+  (tested). Queries are capped at 100 characters and suggestions at 120 requests/min/IP.
+- Search analytics store no user, session or IP, and never store queries that look like emails,
+  phone or card-like numbers, or URLs (tested). Recent searches stay in the shopper's browser.
 
 ## HTTP security headers
 

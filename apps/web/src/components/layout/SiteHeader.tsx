@@ -1,15 +1,18 @@
 import { formatINR } from '@seshakart/ui';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { getCategoryTree } from '@/lib/catalog';
 import { getPublicSettings } from '@/lib/settings/public';
 import { Logo } from '../brand/Logo';
+import { SearchBox, SearchBoxFallback } from '../search/SearchBox';
 import { AccountMenu } from './AccountMenu';
 import { CategoryNav } from './CategoryNav';
 import { MobileMenu } from './MobileMenu';
 
 /**
  * Site header. Server component; only the account menu and mobile drawer hydrate.
- * Search, wishlist and cart are added by their phases.
+ * Search sits in the main bar from 768 px and in its own full-width row below it on
+ * phones. Wishlist and cart are added by their phases.
  */
 export async function SiteHeader() {
   const [settings, tree] = await Promise.all([getPublicSettings(), getCategoryTree()]);
@@ -34,6 +37,11 @@ export async function SiteHeader() {
           <Logo height={36} priority className="hidden sm:block" />
           <Logo variant="icon" height={36} priority className="sm:hidden" />
         </Link>
+        <div className="mx-2 hidden min-w-0 max-w-2xl flex-1 md:block lg:mx-6">
+          <Suspense fallback={<SearchBoxFallback />}>
+            <SearchBox />
+          </Suspense>
+        </div>
         <div className="ml-auto flex items-center gap-1">
           <div className="hidden sm:block">
             <AccountMenu />
@@ -42,6 +50,11 @@ export async function SiteHeader() {
             <AccountMenu compact />
           </div>
         </div>
+      </div>
+      <div className="container-page pb-2 md:hidden">
+        <Suspense fallback={<SearchBoxFallback />}>
+          <SearchBox />
+        </Suspense>
       </div>
       <CategoryNav tree={tree} />
     </header>

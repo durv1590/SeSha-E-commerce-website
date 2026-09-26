@@ -26,4 +26,10 @@ describe('listing params', () => {
       '/category/audio?brand=aurora&page=4',
     );
   });
+
+  it('keeps the search text through filter and page changes', () => {
+    const current = toListingParams({ q: 'wireless earbuds', brand: 'aurora', page: '2' });
+    expect(current.get('q')).toBe('wireless earbuds');
+    expect(listingHref('/search', current, { brand: null })).toBe('/search?q=wireless+earbuds');
+  });
 });

@@ -87,8 +87,9 @@ Other database objects:
 - `sk_product_search_document()`: an IMMUTABLE function that builds a weighted full-text document
   (name A, tags B, short description C, highlights D). It backs a GIN expression index.
 - Trigram GIN indexes (`pg_trgm`) on product, brand and category names and on popular searches.
-  They provide typo tolerance. Default matching uses `word_similarity(q, name) ≥ 0.5`; the default
-  operator threshold of 0.6 misses one-letter typos in short words.
+  They provide typo tolerance: search corrects unknown words to the closest catalogue word
+  (`similarity ≥ 0.3`) and falls back to `word_similarity(q, name) ≥ 0.45`; the default operator
+  threshold of 0.6 misses one-letter typos in short words. See API.md → Search.
 - Partial index for active product listings, and an expression index on available stock (for the
   low-stock dashboard).
 

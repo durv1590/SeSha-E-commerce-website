@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type { BrandRef, CategoryRef, ImageDto } from '@seshakart/types';
+import type { PopularSearches, SearchSuggestions } from '@seshakart/types';
 import { CacheService } from '../cache/cache.service';
 import { CATALOG_CACHE_PREFIX, CategoryService } from '../catalog/category.service';
 import { PrismaService } from '../database/prisma.service';
@@ -19,19 +19,8 @@ export interface SearchResult {
   correctedQuery: string | null;
 }
 
-export interface SuggestionsDto {
-  query: string;
-  products: { id: string; slug: string; name: string; image: ImageDto | null; price: number }[];
-  categories: CategoryRef[];
-  brands: BrandRef[];
-  /** Completions from real, popular searches. */
-  queries: string[];
-}
-
-export interface PopularSearchesDto {
-  trending: string[];
-  popular: string[];
-}
+export type SuggestionsDto = SearchSuggestions;
+export type PopularSearchesDto = PopularSearches;
 
 /**
  * Search engine contract. The PostgreSQL implementation below is the default; a

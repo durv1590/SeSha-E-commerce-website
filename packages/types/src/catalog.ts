@@ -176,3 +176,20 @@ export interface HomePageDto {
   sections: HomeSectionDto[];
   featuredBrands: BrandDto[];
 }
+
+/** As-you-type search suggestions (GET /search/suggest). */
+export interface SearchSuggestions {
+  /** The normalised query the suggestions are for. */
+  query: string;
+  products: { id: string; slug: string; name: string; image: ImageDto | null; price: number }[];
+  categories: CategoryRef[];
+  brands: BrandRef[];
+  /** Completions from real, popular searches. */
+  queries: string[];
+}
+
+/** GET /search/popular: admin-curated trending terms and popular real searches. */
+export interface PopularSearches {
+  trending: string[];
+  popular: string[];
+}

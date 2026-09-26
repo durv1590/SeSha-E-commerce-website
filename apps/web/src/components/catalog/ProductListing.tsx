@@ -1,5 +1,5 @@
 import type { ProductFacets } from '@seshakart/types';
-import { EmptyState, buttonVariants } from '@seshakart/ui';
+import { EmptyState, buttonVariants, cn } from '@seshakart/ui';
 import { SearchX, X } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -23,6 +23,8 @@ export interface ProductListingProps {
   intro?: ReactNode;
   /** Build a sub-category link from a facet value (category pages only). */
   categoryHref?: (slug: string) => string;
+  /** Shown instead of the default empty state when nothing matches and no filter is active. */
+  empty?: ReactNode;
 }
 
 /**
@@ -38,6 +40,7 @@ export async function ProductListing({
   fixed = {},
   intro,
   categoryHref,
+  empty,
 }: ProductListingProps) {
   const params = toListingParams(searchParams, fixed);
   const { result, meta } = await listProducts(params);
@@ -55,9 +58,16 @@ export async function ProductListing({
   };
   const href = (changes: Record<string, string | null>) =>
     listingHref(basePath, params, changes, fixedKeys);
-  const sort = params.get('sort') ?? 'popular';
-  // Form submissions keep the preset sort unless the shopper chose another.
-  const carry = { ...(visible.get('sort') ? { sort: visible.get('sort')! } : {}) };
+  const q = params.get('q');
+  const defaultSort = fixed.sort ?? (q ? 'relevance' : 'popular');
+  const sort = params.get('sort') ?? defaultSort;
+  // Form submissions keep the search text and the chosen sort.
+  const carry = {
+    ...(q ? { q } : {}),
+    ...(visible.get('sort') ? { sort: visible.get('sort')! } : {}),
+  };
+  // "Clear filters" keeps the search itself.
+  const clearHref = q ? `${basePath}?q=${encodeURIComponent(q)}` : basePath;
 
   const chips: { label: string; href: string }[] = [
     ...brands.map((b) => ({
@@ -94,17 +104,23 @@ export async function ProductListing({
       idPrefix={prefix}
     />
   );
+  // A search with no results and no filters: the custom empty state alone, no controls.
+  const bare = Boolean(empty) && result.items.length === 0 && chips.length === 0;
   const sortHrefs = Object.fromEntries(
-    ['popular', 'newest', 'price_asc', 'price_desc', 'discount'].map((s) => [
-      s,
-      href({ sort: s === (fixed.sort ?? 'popular') ? null : s }),
-    ]),
+    [...(q ? ['relevance'] : []), 'popular', 'newest', 'price_asc', 'price_desc', 'discount'].map(
+      (s) => [s, href({ sort: s === defaultSort ? null : s })],
+    ),
   );
 
   return (
     <div className="container-page pb-section">
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside aria-label="Filters" className="hidden lg:block">
+      <div
+        className={cn(
+          'grid grid-cols-[minmax(0,1fr)] gap-8',
+          !bare && 'lg:grid-cols-[15rem_minmax(0,1fr)]',
+        )}
+      >
+        <aside aria-label="Filters" className={cn('hidden', !bare && 'lg:block')}>
           <FilterForm id="filters" action={basePath} fixed={carry} autoSubmit>
             {panel('fd', false)}
           </FilterForm>
@@ -117,9 +133,21 @@ export async function ProductListing({
               {meta.total.toLocaleString('en-IN')} {meta.total === 1 ? 'product' : 'products'}
             </p>
             {intro}
+            {result.correctedQuery && q && (
+              <p className="text-body">
+                No results for <q className="font-semibold">{q}</q>. Showing results for{' '}
+                <q className="font-semibold">{result.correctedQuery}</q> instead.
+              </p>
+            )}
           </div>
 
-          <div className="sticky top-[5.75rem] z-sticky -mx-gutter mt-4 flex items-center justify-between gap-3 border-y border-border bg-background/95 px-gutter py-2 backdrop-blur md:top-[7rem] lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+          {/* Sticks just below the sticky header: 9rem with the phone search row, 6.5rem from md. */}
+          <div
+            className={cn(
+              bare ? 'hidden' : 'flex',
+              'sticky top-[9rem] z-sticky -mx-gutter mt-4 items-center justify-between gap-3 border-y border-border bg-background/95 px-gutter py-2 backdrop-blur md:top-[6.5rem] lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none',
+            )}
+          >
             <MobileFilters action={basePath} fixed={carry} activeCount={chips.length}>
               {panel('fm', true)}
             </MobileFilters>
@@ -144,21 +172,23 @@ export async function ProductListing({
                 </li>
               ))}
               <li>
-                <Link href={basePath} scroll={false} className="text-small font-semibold">
+                <Link href={clearHref} scroll={false} className="text-small font-semibold">
                   Clear all
                 </Link>
               </li>
             </ul>
           )}
 
-          {result.items.length === 0 ? (
+          {result.items.length === 0 && empty && chips.length === 0 ? (
+            empty
+          ) : result.items.length === 0 ? (
             <EmptyState
               className="mt-6"
               icon={<SearchX size={28} aria-hidden="true" />}
               title="No products match these filters"
               description="Try removing a filter or widening the price range."
               action={
-                <Link href={basePath} className={buttonVariants({ variant: 'outline' })}>
+                <Link href={clearHref} className={buttonVariants({ variant: 'outline' })}>
                   Clear filters
                 </Link>
               }

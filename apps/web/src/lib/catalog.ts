@@ -5,6 +5,7 @@ import type {
   CategoryNode,
   HomePageDto,
   PaginationMeta,
+  PopularSearches,
   ProductDetail,
   ProductListResult,
   ProductSummary,
@@ -65,3 +66,10 @@ export async function listProducts(
   );
   return { result: res.data, meta: res.meta! };
 }
+
+export const getPopularSearches = cache(() =>
+  serverApi<PopularSearches>('/search/popular', { ...pub, revalidate: 300 }).then(
+    (r) => r.data,
+    (): PopularSearches => ({ trending: [], popular: [] }),
+  ),
+);

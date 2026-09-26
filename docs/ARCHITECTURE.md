@@ -63,6 +63,10 @@
 | 26  | **Two cache layers:** API Redis (60–300 s) plus the Next.js data cache (tag `catalog`)                                                 | Repeat views never hit PostgreSQL. Admin edits (Phase 10) invalidate the `catalog:` prefix and the `catalog` tag.                                                                                 |
 | 27  | **Shop pages render per request** (`force-dynamic`), with cached data                                                                  | The header shows live admin-managed categories and settings, and nothing is baked in at build time, when the API is unreachable.                                                                  |
 | 28  | **Media storage abstraction** (local driver now, S3 later); media is served at `/api/media` with immutable caching and a sandboxed CSP | The same URLs work behind a CDN. Keys are validated against path traversal.                                                                                                                       |
+| 29  | **Search in PostgreSQL** (full text + `pg_trgm`) behind a `SearchEngine` interface                                                     | No extra service to run or sync at launch, and results always match live stock and status. A dedicated engine or semantic search can implement the same interface later.                          |
+| 30  | **Search results are ranked ids, then the normal listing query**                                                                       | Filters, facets, pagination and card data are shared with every listing, so search results behave exactly like category pages.                                                                    |
+| 31  | **Anonymous, aggregate search analytics**                                                                                              | Popular searches and completions need counts, not identities. No user, session or IP is stored, and personal-looking queries are dropped.                                                         |
+| 32  | **Recent searches stay in the browser** (`localStorage`)                                                                               | Useful for the shopper, and nothing personal is sent or stored server-side.                                                                                                                       |
 
 ## Request lifecycle (API)
 
@@ -213,3 +217,30 @@ checks responsive behaviour, and records decisions here.
   - The production build failed when Google Fonts returned a response it couldn't parse. Fonts are
     now self-hosted, and a ₹-only subset face was added: the rupee sign had been rendering in a
     fallback font.
+
+### Phase 6: search and filtering ✅
+
+- **API:**
+  - PostgreSQL search engine: normalisation, synonyms, brand detection, weighted prefix
+    full-text search, typo correction from the catalogue vocabulary and a fuzzy fallback for
+    unknown words. Ranking blends relevance, sales and stock.
+  - `q` on the product listing (relevance sort, facets scoped to the results),
+    `/search/suggest` and `/search/popular` (admin-curated trending plus popular real searches).
+  - Anonymous search analytics that skip personal-looking queries.
+  - 15 new integration tests (ranking, prefixes, synonyms, brands, typos, filters, injection
+    attempts, analytics privacy, suggestions) and 5 unit tests.
+- **Web:**
+  - Header search as an ARIA 1.2 combobox: debounced suggestions with product thumbnails,
+    categories, brands and completions; recent (browser-only), trending and popular searches
+    when empty; full keyboard support. A plain GET form without JavaScript. In the main bar
+    from 768 px, in its own row on phones.
+  - `/search` results page on the shared listing (filters keep the query, relevance sort,
+    "showing results for" notice), an empty state with popular searches and categories, and
+    `noindex, follow`.
+- **QA:** keyboard and screen-reader semantics checked, axe clean on the popup, results and empty
+  pages, and 16 widths with no overflow.
+- **Bugs found and fixed:**
+  - Length-normalised ranking put a bare product above a better-described one (now
+    `rank/(rank+1)`).
+  - The fuzzy fallback returned partial matches for real words that never occur together.
+  - The sticky sort bar slid under the taller phone header.

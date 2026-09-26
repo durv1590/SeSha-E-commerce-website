@@ -1,9 +1,10 @@
-/** Query-string handling for product listings (filters, sort, page). */
+/** Query-string handling for product listings (search text, filters, sort, page). */
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 /** Params that the listing API understands; anything else is dropped. */
 const ALLOWED = [
+  'q',
   'category',
   'brand',
   'min',

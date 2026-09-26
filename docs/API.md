@@ -96,6 +96,7 @@ Indian address fields: `name`, `phone` (10-digit mobile), `line1`, `line2?`, `la
 
 | Param              | Example               | Meaning                                                                             |
 | ------------------ | --------------------- | ----------------------------------------------------------------------------------- |
+| `q`                | `wireless earbuds`    | Search text (1–100 characters); see **Search** below                                |
 | `category`         | `audio`               | Category slug, including all its sub-categories                                     |
 | `brand`            | `aurora-sound,voltix` | One or more brand slugs                                                             |
 | `min`, `max`       | `500`, `5000`         | Price range in **rupees** (converted to paise internally)                           |
@@ -106,10 +107,40 @@ Indian address fields: `name`, `phone` (10-digit mobile), `line1`, `line2?`, `la
 | `sort`             | `popular`             | `popular`, `newest`, `price_asc`, `price_desc`, `discount`, `rating` or `relevance` |
 | `page`, `pageSize` | `2`, `24`             | Page size is at most 60                                                             |
 
-The response is `data: { items: ProductSummary[], facets }` plus `meta`. **Facets** give brand
+The response is `data: { items: ProductSummary[], facets, query, correctedQuery }` plus `meta`. **Facets** give brand
 and category counts and the price range. Each facet ignores its **own** filter, so shoppers can
 widen a selection. `ProductSummary.price` and `mrp` belong to the cheapest active variant.
 Ratings are only ever aggregated from approved reviews.
 
-Search, cart, checkout, orders, payments and admin endpoints are documented here as their phases
-land.
+### Search (public)
+
+| Method | Path                  | Description                                                                                                                                   |
+| ------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/products?q=…`       | Full search results, combinable with every listing filter. Default sort is `relevance`; facets count only the matching products.              |
+| GET    | `/search/suggest?q=…` | As-you-type suggestions: up to 6 products, 4 categories, 3 brands and 4 popular completions. `Cache-Control: max-age=60`; 120 requests/min/IP |
+| GET    | `/search/popular`     | `{ trending, popular }`: admin-curated trending terms (setting `search`) and real searches made at least `popularMinCount` times with results |
+
+How a query is matched:
+
+1. Normalised (lower case, accents and punctuation removed, at most 8 words of `[a-z0-9]`), so no
+   user text ever reaches `to_tsquery` unescaped.
+2. Everyday synonyms are ORed in (`tshirt` → `shirt`, `mobile` → `smartphone`, `tws` → `earbuds`).
+3. A word matching a brand name becomes a brand filter (`aurora earbuds`).
+4. Weighted full-text search with prefix matching (`ear` finds `earbuds`): name > tags > short
+   description > highlights. **Every word must match.**
+5. No hits: unknown words are corrected against the live catalogue vocabulary with trigram
+   similarity, and `correctedQuery` is returned (`earbds` → `earbuds`).
+6. Still nothing and a word is unknown: close product names (trigram word similarity). When
+   every word is a real catalogue word that just never occurs together, the result is empty
+   rather than a misleading partial match.
+
+Ranking blends text rank, a name-prefix boost, name similarity, sales and in-stock status.
+Results are cached for 2 minutes. The engine sits behind a `SearchEngine` interface so a
+dedicated engine (OpenSearch, Meilisearch) or semantic search can replace it later.
+
+**Search analytics** are aggregate and anonymous: one row per normalised query with a count and
+the last result count, no user, session or IP. Only page 1 of `/products?q=` counts (suggestions
+never do), and queries that look like personal data (emails, phone or card-like numbers, URLs)
+are never stored.
+
+Cart, checkout, orders, payments and admin endpoints are documented here as their phases land.

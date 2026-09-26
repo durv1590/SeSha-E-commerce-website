@@ -30,7 +30,9 @@ describe('productListQuerySchema', () => {
     expect(effectiveSort(productListQuerySchema.parse({ q: 'earbuds' }))).toBe('relevance');
     expect(effectiveSort(productListQuerySchema.parse({}))).toBe('popular');
     expect(effectiveSort(productListQuerySchema.parse({ sort: 'relevance' }))).toBe('popular');
-    expect(effectiveSort(productListQuerySchema.parse({ q: 'x', sort: 'price_asc' }))).toBe('price_asc');
+    expect(effectiveSort(productListQuerySchema.parse({ q: 'x', sort: 'price_asc' }))).toBe(
+      'price_asc',
+    );
   });
 
   it('applies defaults and rejects unsafe values', () => {
