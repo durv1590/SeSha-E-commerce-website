@@ -1,0 +1,119 @@
+# SeShaKart
+
+**SeShaKart Pvt. Ltd.** — _Smart Shopping, Better Living_ · [www.seshakart.com](https://www.seshakart.com)
+
+Production e-commerce platform for the Indian market: a Next.js storefront and admin,
+a NestJS REST API that web and future mobile apps share, and PostgreSQL plus Redis for
+data and caching.
+
+> **Status:** all 14 phases of the build plan are complete, from architecture to production
+> deployment preparation. See the [roadmap](#roadmap) and, before going live, the launch
+> checklist in [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Repository layout
+
+```
+apps/
+  web/            Next.js 15 (App Router, React 19, Tailwind) — storefront + /admin
+  api/            NestJS 11 REST API — all business logic, pricing, inventory, payments
+  e2e/            Playwright end-to-end tests against the whole stack
+packages/
+  types/          Shared API contracts and domain types (@seshakart/types)
+  validation/     Shared Zod schemas used by web forms AND the API (@seshakart/validation)
+  ui/             Design system: tokens, Tailwind preset, accessible React components (@seshakart/ui)
+  tsconfig/       Shared TypeScript presets
+  eslint-config/  Shared ESLint flat config
+brand/            Brand reference board + master logo files
+docs/             Architecture, environment, API, database, security, deployment and brand docs
+infra/            Dockerfiles, docker-compose, nginx and operations scripts (backup, restore, smoke)
+.github/          CI workflows
+```
+
+## Requirements
+
+- Node.js 22 (see `.nvmrc`; 20.11+ works)
+- pnpm 10 (`corepack enable`)
+- PostgreSQL 16 and Redis 7. `pnpm infra:up` starts both with Docker. Redis is optional locally.
+
+## Getting started
+
+```bash
+corepack enable
+pnpm install
+pnpm infra:up                 # PostgreSQL + Redis (Docker)
+cp .env.example .env          # set SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
+pnpm db:deploy                # apply database migrations
+pnpm build                    # build packages, API and web
+pnpm db:seed                  # default settings + first super admin
+pnpm db:seed:demo             # optional: labelled demo catalogue (never in production)
+pnpm dev                      # web on :3000, API on :4000
+```
+
+- Storefront: http://localhost:3000. Sign in at `/login`. In development, sign-in codes are printed
+  in the API log.
+- Design system reference: http://localhost:3000/design-system (development only)
+- API health: http://localhost:4000/api/health. The same endpoint is also served through the web proxy at http://localhost:3000/api/health.
+
+## Common commands
+
+| Command                        | What it does                                             |
+| ------------------------------ | -------------------------------------------------------- |
+| `pnpm dev`                     | Build shared packages, run API and web in watch mode     |
+| `pnpm build`                   | Production build of packages, API and web                |
+| `pnpm test`                    | Unit and integration tests in every workspace            |
+| `pnpm test:e2e`                | End-to-end tests in a real browser (after `pnpm build`)  |
+| `pnpm lint`                    | ESLint in every workspace                                |
+| `pnpm typecheck`               | TypeScript in every workspace                            |
+| `pnpm format`                  | Prettier                                                 |
+| `pnpm infra:up`                | Start local PostgreSQL and Redis (Docker)                |
+| `pnpm brand:assets`            | Regenerate the provisional logo set from the brand board |
+| `pnpm db:migrate`              | Create and apply a migration (development)               |
+| `pnpm db:new <name>`           | Generate a migration non-interactively (CI, containers)  |
+| `pnpm db:deploy`               | Apply pending migrations                                 |
+| `pnpm db:check`                | Fail if migrations and schema.prisma disagree (CI)       |
+| `pnpm db:seed`                 | Idempotent base seed                                     |
+| `pnpm db:seed:demo [--remove]` | Create (or remove) the labelled demo catalogue           |
+| `pnpm db:studio`               | Browse data with Prisma Studio                           |
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) covers system design, key decisions and the phase plan.
+- [Environment](docs/ENVIRONMENT.md) lists every environment variable.
+- [Database](docs/DATABASE.md) covers the data model, constraints, migrations and seed.
+- [API](docs/API.md) is the REST reference and client conventions.
+- [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF, admin and deployment assumptions.
+- [Testing](docs/TESTING.md): unit, integration and end-to-end tests, how to run and write them.
+- [Admin guide](docs/ADMIN_GUIDE.md) explains running the store from the admin, for staff.
+- [Performance](docs/PERFORMANCE.md): load-test results, what was optimised, scaling notes
+  ([tools/perf](tools/perf/README.md) reproduces the measurements).
+- [SEO and analytics](docs/SEO_ANALYTICS.md): indexing, sitemap, structured data, consent and
+  analytics setup (GA4, Meta Pixel).
+- [Brand design system](docs/BRAND_DESIGN_SYSTEM.md) covers the logo, colour, type, components and accessibility rules.
+- [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
+- [Brand identity brief](docs/brand/brand-identity-brief.md)
+
+- [Deployment](docs/DEPLOYMENT.md): production setup, launch checklist, releases, rollback,
+  backups and monitoring.
+
+## Roadmap
+
+| Phase | Scope                                | Status  |
+| ----- | ------------------------------------ | ------- |
+| 1     | Architecture & repository setup      | ✅ Done |
+| 2     | Design system & brand implementation | ✅ Done |
+| 3     | Database & backend foundation        | ✅ Done |
+| 4     | Authentication & customer system     | ✅ Done |
+| 5     | Product / catalog / category system  | ✅ Done |
+| 6     | Search & filtering                   | ✅ Done |
+| 7     | Cart & wishlist                      | ✅ Done |
+| 8     | Checkout & payment architecture      | ✅ Done |
+| 9     | Orders & shipping                    | ✅ Done |
+| 10    | Admin dashboard                      | ✅ Done |
+| 11    | SEO & analytics                      | ✅ Done |
+| 12    | Performance & security               | ✅ Done |
+| 13    | Testing (E2E)                        | ✅ Done |
+| 14    | Production deployment preparation    | ✅ Done |
+
+## Contact
+
+SeShaKart Pvt. Ltd. · durvesh15aug@gmail.com · +91 8218397819

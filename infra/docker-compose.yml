@@ -1,0 +1,107 @@
+# Full stack in containers (production-like). Secrets come from an env file that
+# is NOT committed:  docker compose -f infra/docker-compose.yml --env-file .env.production up -d
+name: seshakart
+
+# Rotate container logs (Docker keeps them forever by default).
+x-logging: &logging
+  driver: json-file
+  options: { max-size: '20m', max-file: '5' }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-seshakart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-seshakart}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-seshakart}']
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+  api:
+    # Built here (`compose build`) or pulled from the registry (`compose pull`, see
+    # .github/workflows/release.yml): set SESHAKART_API_IMAGE to a released tag.
+    image: ${SESHAKART_API_IMAGE:-seshakart-api:local}
+    build: { context: .., dockerfile: infra/docker/api.Dockerfile }
+    env_file: ${ENV_FILE:-../.env.production}
+    environment:
+      API_PORT: 4000
+      # Cloudflare → nginx (edge) → api: nginx overwrites X-Forwarded-For with the client IP.
+      TRUST_PROXY_HOPS: 1
+      MEDIA_LOCAL_DIR: /app/uploads
+      DATABASE_URL: postgresql://${POSTGRES_USER:-seshakart}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-seshakart}?schema=public
+      REDIS_URL: redis://redis:6379
+      WEB_INTERNAL_URL: http://web:3000
+    volumes:
+      - media:/app/uploads
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    # In-flight requests finish before the container stops (graceful shutdown).
+    stop_grace_period: 30s
+    restart: unless-stopped
+    logging: *logging
+  web:
+    image: ${SESHAKART_WEB_IMAGE:-seshakart-web:local}
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      # Compiled into the bundle: pass them when building, e.g. `--env-file ../.env.production`.
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://www.seshakart.com}
+        NEXT_PUBLIC_ANALYTICS_ID: ${NEXT_PUBLIC_ANALYTICS_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${NEXT_PUBLIC_META_PIXEL_ID:-}
+    env_file: ${ENV_FILE:-../.env.production}
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    depends_on:
+      api: { condition: service_healthy }
+    stop_grace_period: 30s
+    restart: unless-stopped
+    logging: *logging
+  # Edge proxy: /api/* → api (with the real client IP), everything else → web.
+  # Bound to the server itself by default: traffic arrives through the Cloudflare Tunnel
+  # below. Only for a directly exposed server (behind Cloudflare's proxy, with a firewall
+  # allowing Cloudflare's IP ranges alone) set EDGE_BIND=0.0.0.0. See docs/DEPLOYMENT.md.
+  edge:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/seshakart.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ['${EDGE_BIND:-127.0.0.1}:80:80']
+    depends_on:
+      web: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+  # Cloudflare Tunnel (recommended): an outbound, encrypted connection to Cloudflare, so the
+  # server needs no open inbound ports and no TLS certificate. Enable with
+  #   docker compose --profile tunnel ... up -d
+  # after creating the tunnel in Cloudflare Zero Trust with the public hostnames
+  # www.seshakart.com and seshakart.com → http://edge:80, and setting CLOUDFLARE_TUNNEL_TOKEN.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: [tunnel]
+    command: ['tunnel', '--no-autoupdate', 'run']
+    environment:
+      # Required for this profile; cloudflared exits with an error when it is empty.
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on: [edge]
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  media:

@@ -1,0 +1,41 @@
+{
+  "name": "@seshakart/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SeShaKart storefront and admin (Next.js App Router).",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@next/env": "15.5.26",
+    "@seshakart/types": "workspace:*",
+    "@seshakart/ui": "workspace:*",
+    "@seshakart/validation": "workspace:*",
+    "lucide-react": "^0.544.0",
+    "next": "15.5.26",
+    "react": "19.1.9",
+    "react-dom": "19.1.9",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@seshakart/tsconfig": "workspace:*",
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "15.5.26",
+    "eslint-config-prettier": "^10.1.8",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.11"
+  }
+}

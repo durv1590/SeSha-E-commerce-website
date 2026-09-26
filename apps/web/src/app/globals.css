@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Global base styles. Design values come from CSS variables generated from
+ * packages/ui/src/tokens.ts by the Tailwind preset — no raw colours here.
+ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: 5rem; /* keep anchored headings clear of the sticky header */
+  }
+
+  body {
+    @apply bg-background font-body text-body text-text-primary antialiased;
+    min-height: 100dvh;
+    overflow-x: clip; /* guard against accidental horizontal scroll on mobile */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-heading text-text-primary;
+    /* Longhand: the `text-wrap` shorthand would also reset text-wrap-mode and
+       override an inherited `white-space: nowrap`. */
+    text-wrap-style: balance;
+  }
+
+  p {
+    text-wrap-style: pretty;
+  }
+
+  a {
+    @apply text-primary underline-offset-4;
+  }
+
+  /* A link inside running text must not rely on colour alone (WCAG 1.4.1): underline it.
+     Components that style links as buttons or cards opt out with \`no-underline\`. */
+  p a {
+    @apply underline;
+  }
+
+  /* One consistent, clearly visible keyboard focus indicator (WCAG 2.4.7 / 2.4.11). */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-focus;
+  }
+
+  ::selection {
+    @apply bg-primary-light text-navy;
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+}
+
+/* Long-form CMS text (policies, about us) rendered from restricted Markdown. */
+@layer components {
+  .cms-content {
+    @apply max-w-[68ch] text-body text-text-primary;
+  }
+  .cms-content > * + * {
+    @apply mt-4;
+  }
+  .cms-content h2 {
+    @apply mt-8 text-h3;
+  }
+  .cms-content h3 {
+    @apply mt-6 text-h4;
+  }
+  .cms-content ul {
+    @apply list-disc pl-6;
+  }
+  .cms-content ol {
+    @apply list-decimal pl-6;
+  }
+  .cms-content li + li {
+    @apply mt-1.5;
+  }
+  .cms-content a {
+    @apply font-medium text-primary-dark underline;
+  }
+}
+
+/* Respect users who ask for less motion: keep state changes, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

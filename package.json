@@ -1,0 +1,36 @@
+{
+  "name": "seshakart",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SeShaKart Pvt. Ltd. \u2014 production e-commerce platform (web + API monorepo)",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "build:packages": "pnpm --filter \"./packages/**\" build",
+    "build": "pnpm build:packages && pnpm --filter @seshakart/api build && pnpm --filter @seshakart/web build",
+    "dev": "pnpm build:packages && pnpm --parallel --filter @seshakart/api --filter @seshakart/web dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm build:packages && pnpm -r typecheck",
+    "test": "pnpm build:packages && pnpm -r test",
+    "test:e2e": "pnpm --filter @seshakart/e2e e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "brand:assets": "node brand/logo/extract-provisional-logo.js",
+    "db:migrate": "pnpm --filter @seshakart/api prisma:migrate",
+    "db:deploy": "pnpm --filter @seshakart/api prisma:deploy",
+    "db:seed": "pnpm --filter @seshakart/api seed",
+    "db:studio": "pnpm --filter @seshakart/api prisma:studio",
+    "db:check": "pnpm --filter @seshakart/api prisma:check",
+    "db:new": "pnpm --filter @seshakart/api prisma:new",
+    "db:seed:demo": "pnpm --filter @seshakart/api seed:demo"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "~5.8.3",
+    "sharp": "^0.34.4"
+  }
+}
