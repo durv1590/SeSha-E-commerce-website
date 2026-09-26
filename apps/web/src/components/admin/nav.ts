@@ -21,6 +21,20 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    label: 'Sales',
+    items: [
+      { href: '/admin/orders', label: 'Orders', icon: 'orders', permission: 'orders:read' },
+      { href: '/admin/returns', label: 'Returns', icon: 'returns', permission: 'orders:read' },
+      {
+        href: '/admin/customers',
+        label: 'Customers',
+        icon: 'customers',
+        permission: 'customers:read',
+      },
+      { href: '/admin/coupons', label: 'Coupons', icon: 'coupons', permission: 'coupons:write' },
+    ],
+  },
+  {
     label: 'Catalogue',
     items: [
       { href: '/admin/products', label: 'Products', icon: 'products', permission: 'products:read' },
