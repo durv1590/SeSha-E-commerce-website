@@ -29,6 +29,7 @@ services:
       MEDIA_LOCAL_DIR: /app/uploads
       DATABASE_URL: postgresql://${POSTGRES_USER:-seshakart}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-seshakart}?schema=public
       REDIS_URL: redis://redis:6379
+      WEB_INTERNAL_URL: http://web:3000
     volumes:
       - media:/app/uploads
     depends_on:

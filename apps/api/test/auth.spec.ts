@@ -4,7 +4,7 @@ import { ModulesContainer } from '@nestjs/core';
 import { PrismaClient } from '@prisma/client';
 import { createHmac } from 'node:crypto';
 import request from 'supertest';
-import { PERMISSIONS_KEY, RequirePermissions } from '../src/auth/decorators';
+import { ANY_PERMISSIONS_KEY, PERMISSIONS_KEY, RequirePermissions } from '../src/auth/decorators';
 import { hashPassword } from '../src/common/security/password';
 import { MessagingService } from '../src/messaging/messaging.service';
 import { createTestApp } from './helpers/app';
@@ -455,12 +455,15 @@ describe('authentication (integration)', () => {
           if (!metatype) continue;
           const path = String(Reflect.getMetadata(PATH_METADATA, metatype) ?? '');
           if (!path.replace(/^\//, '').startsWith('admin')) continue;
-          const classPerms = Reflect.getMetadata(PERMISSIONS_KEY, metatype);
+          const guarded = (t: object) =>
+            Boolean(
+              Reflect.getMetadata(PERMISSIONS_KEY, t) ??
+              Reflect.getMetadata(ANY_PERMISSIONS_KEY, t),
+            );
+          const classPerms = guarded(metatype);
           const proto = metatype.prototype as Record<string, object>;
           const handlers = Object.getOwnPropertyNames(proto).filter((n) => n !== 'constructor');
-          const unguarded = handlers.filter(
-            (h) => !classPerms && !Reflect.getMetadata(PERMISSIONS_KEY, proto[h]!),
-          );
+          const unguarded = handlers.filter((h) => !classPerms && !guarded(proto[h]!));
           if (unguarded.length) offenders.push(`${metatype.name}: ${unguarded.join(', ')}`);
         }
       }

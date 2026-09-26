@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { SETTINGS_SCHEMAS, type SettingsKey, type SettingsValue } from '@seshakart/validation';
 import { AuditService } from '../audit/audit.service';
 import { CacheService } from '../cache/cache.service';
+import { RevalidationService } from '../cache/revalidation.service';
 import { PrismaService } from '../database/prisma.service';
 
 const TTL_SECONDS = 300;
@@ -16,6 +17,7 @@ export class SettingsService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly audit: AuditService,
+    private readonly revalidation: RevalidationService,
   ) {}
 
   async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K>> {
@@ -56,6 +58,7 @@ export class SettingsService {
       );
     });
     await this.cache.del(`settings:${key}`);
+    await this.revalidation.settingsChanged();
     return next;
   }
 }

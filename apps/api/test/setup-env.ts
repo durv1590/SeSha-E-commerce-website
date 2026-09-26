@@ -9,3 +9,5 @@ process.env.SESSION_SECRET = 'test-session-secret-that-is-at-least-32-chars';
 process.env.SMS_PROVIDER = 'console';
 delete process.env.SMTP_HOST;
 process.env.RATE_LIMIT_ENABLED = 'false'; // rate-limit.spec.ts re-enables it explicitly
+delete process.env.WEB_INTERNAL_URL; // never call a running storefront from tests
+delete process.env.REVALIDATE_SECRET;

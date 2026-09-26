@@ -79,6 +79,14 @@ const envSchema = z
     PAYMENT_WEBHOOK_SECRET: z.string().optional(),
     /** Override for the gateway API base URL (tests / sandboxes). */
     PAYMENT_API_BASE: z.string().url().optional(),
+
+    /**
+     * Storefront (Next.js) base URL on the private network, e.g. http://web:3000. After
+     * catalogue or settings changes the API asks it to refresh its cached pages at once.
+     */
+    WEB_INTERNAL_URL: z.string().url().optional(),
+    /** Shared secret for that request (≥ 32 characters, same value in the web app). */
+    REVALIDATE_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -96,8 +104,17 @@ const envSchema = z
     require('JWT_SECRET', env.JWT_SECRET !== env.SESSION_SECRET, 'must differ from SESSION_SECRET');
     require('RATE_LIMIT_ENABLED', env.RATE_LIMIT_ENABLED, 'cannot be disabled in production');
     require('PAYMENT_PROVIDER', env.PAYMENT_PROVIDER !== 'mock', 'cannot be "mock" in production');
+    require('WEB_INTERNAL_URL', Boolean(
+      env.WEB_INTERNAL_URL,
+    ), 'is required in production (storefront refresh after admin changes)');
   })
   .superRefine((env, ctx) => {
+    if (env.WEB_INTERNAL_URL && !env.REVALIDATE_SECRET)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['REVALIDATE_SECRET'],
+        message: 'is required with WEB_INTERNAL_URL',
+      });
     // A real gateway needs all three credentials, whatever the environment.
     if (env.PAYMENT_PROVIDER === 'mock') return;
     for (const key of ['PAYMENT_KEY_ID', 'PAYMENT_KEY_SECRET', 'PAYMENT_WEBHOOK_SECRET'] as const) {

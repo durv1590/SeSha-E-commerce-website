@@ -15,6 +15,8 @@ const PROD = {
   PAYMENT_KEY_ID: 'rzp_live_x',
   PAYMENT_KEY_SECRET: 'secret',
   PAYMENT_WEBHOOK_SECRET: 'hook',
+  WEB_INTERNAL_URL: 'http://web:3000',
+  REVALIDATE_SECRET: 'r'.repeat(32),
 };
 
 describe('loadEnv', () => {
@@ -48,6 +50,13 @@ describe('loadEnv', () => {
     );
     expect(() => loadEnv({ ...DB, PAYMENT_PROVIDER: 'razorpay' })).toThrow(/PAYMENT_KEY_ID/);
     expect(loadEnv({ ...DB }).PAYMENT_PROVIDER).toBe('mock');
+  });
+
+  it('requires the storefront revalidation hook in production', () => {
+    expect(() => loadEnv({ ...PROD, WEB_INTERNAL_URL: undefined })).toThrow(/WEB_INTERNAL_URL/);
+    expect(() => loadEnv({ ...PROD, REVALIDATE_SECRET: undefined })).toThrow(/REVALIDATE_SECRET/);
+    expect(() => loadEnv({ ...PROD, REVALIDATE_SECRET: 'short' })).toThrow(/REVALIDATE_SECRET/);
+    expect(loadEnv({ ...DB }).WEB_INTERNAL_URL).toBeUndefined();
   });
 
   it('requires strong secrets', () => {

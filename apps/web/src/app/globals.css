@@ -25,11 +25,13 @@
   h4,
   h5 {
     @apply font-heading text-text-primary;
-    text-wrap: balance;
+    /* Longhand: the `text-wrap` shorthand would also reset text-wrap-mode and
+       override an inherited `white-space: nowrap`. */
+    text-wrap-style: balance;
   }
 
   p {
-    text-wrap: pretty;
+    text-wrap-style: pretty;
   }
 
   a {

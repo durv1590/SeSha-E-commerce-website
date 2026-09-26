@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
@@ -13,6 +14,7 @@ import { ConfigModule, ENV } from './config/config.module';
 import type { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
+import { MediaModule } from './media/media.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { OrdersModule } from './orders/orders.module';
 import { RedisModule } from './redis/redis.module';
@@ -51,6 +53,8 @@ import { UsersModule } from './users/users.module';
     CartModule,
     CheckoutModule,
     OrdersModule,
+    MediaModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

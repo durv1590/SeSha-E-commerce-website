@@ -4,7 +4,7 @@ import { hasAllPermissions, type Permission } from '@seshakart/types';
 import type { Request } from 'express';
 import { AppException } from '../common/filters/all-exceptions.filter';
 import { ACCESS_COOKIE } from './cookies';
-import { AUTH_REQUIRED_KEY, PERMISSIONS_KEY } from './decorators';
+import { ANY_PERMISSIONS_KEY, AUTH_REQUIRED_KEY, PERMISSIONS_KEY } from './decorators';
 import { SessionService } from './session.service';
 import { TokenService } from './token.service';
 
@@ -34,9 +34,14 @@ export class AuthGuard implements CanActivate {
       PERMISSIONS_KEY,
       targets,
     );
+    const anyOf = this.reflector.getAllAndOverride<Permission[] | undefined>(
+      ANY_PERMISSIONS_KEY,
+      targets,
+    );
     const required =
       this.reflector.getAllAndOverride<boolean | undefined>(AUTH_REQUIRED_KEY, targets) ||
-      !!permissions;
+      !!permissions ||
+      !!anyOf;
     if (!required) return true;
 
     if (!req.auth) {
@@ -46,7 +51,10 @@ export class AuthGuard implements CanActivate {
         'Please sign in to continue.',
       );
     }
-    if (permissions && !hasAllPermissions(req.auth.role, permissions)) {
+    if (
+      (permissions && !hasAllPermissions(req.auth.role, permissions)) ||
+      (anyOf && !anyOf.some((p) => hasAllPermissions(req.auth!.role, [p])))
+    ) {
       throw new AppException(
         HttpStatus.FORBIDDEN,
         'FORBIDDEN',
