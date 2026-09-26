@@ -55,7 +55,11 @@ export const bannerInputSchema = z
   })
   .superRefine((b, ctx) => {
     if (b.startsAt && b.endsAt && b.startsAt >= b.endsAt)
-      ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'The end must be after the start' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endsAt'],
+        message: 'The end must be after the start',
+      });
     if (b.ctaLabel && !b.link)
       ctx.addIssue({ code: 'custom', path: ['link'], message: 'A button needs a link' });
     const hasImage = b.imageDesktop || b.imageTablet || b.imageMobile;

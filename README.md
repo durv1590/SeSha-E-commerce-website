@@ -80,13 +80,14 @@ pnpm dev                      # web on :3000, API on :4000
 - [Environment](docs/ENVIRONMENT.md) lists every environment variable.
 - [Database](docs/DATABASE.md) covers the data model, constraints, migrations and seed.
 - [API](docs/API.md) is the REST reference and client conventions.
-- [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF and deployment assumptions.
+- [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF, admin and deployment assumptions.
+- [Admin guide](docs/ADMIN_GUIDE.md) explains running the store from the admin, for staff.
 - [Brand design system](docs/BRAND_DESIGN_SYSTEM.md) covers the logo, colour, type, components and accessibility rules.
 - [Brand assets](brand/README.md) covers the logo files and the status of the brand reference.
 - [Brand identity brief](docs/brand/brand-identity-brief.md)
 
-These docs arrive in the phases that introduce the matching features: `DEPLOYMENT.md`,
-`TESTING.md` and `ADMIN_GUIDE.md`.
+These docs arrive in the phases that introduce the matching features: `DEPLOYMENT.md` and
+`TESTING.md`.
 
 ## Roadmap
 
@@ -101,8 +102,8 @@ These docs arrive in the phases that introduce the matching features: `DEPLOYMEN
 | 7     | Cart & wishlist                      | ✅ Done |
 | 8     | Checkout & payment architecture      | ✅ Done |
 | 9     | Orders & shipping                    | ✅ Done |
-| 10    | Admin dashboard                      | Next    |
-| 11    | SEO & analytics                      |         |
+| 10    | Admin dashboard                      | ✅ Done |
+| 11    | SEO & analytics                      | Next    |
 | 12    | Performance & security               |         |
 | 13    | Testing (E2E)                        |         |
 | 14    | Production deployment preparation    |         |

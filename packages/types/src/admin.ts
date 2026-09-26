@@ -189,7 +189,8 @@ export interface InventoryRowDto {
   updatedAt: string;
 }
 
-export type InventoryTxTypeDto = 'ADJUSTMENT' | 'RESTOCK' | 'RESERVE' | 'RELEASE' | 'SALE' | 'RETURN';
+export type InventoryTxTypeDto =
+  'ADJUSTMENT' | 'RESTOCK' | 'RESERVE' | 'RELEASE' | 'SALE' | 'RETURN';
 
 export interface InventoryLedgerEntryDto {
   id: string;
@@ -430,7 +431,14 @@ export interface AdminReviewDto {
 
 /** A "needs attention" item in the admin notification bell. */
 export interface AdminAlertDto {
-  key: 'to_ship' | 'payment_pending' | 'returns' | 'manual_refunds' | 'reviews' | 'low_stock' | 'out_of_stock';
+  key:
+    | 'to_ship'
+    | 'payment_pending'
+    | 'returns'
+    | 'manual_refunds'
+    | 'reviews'
+    | 'low_stock'
+    | 'out_of_stock';
   label: string;
   count: number;
   href: string;

@@ -113,14 +113,15 @@ export function OrderActions({
   const openReturns = order.returns.filter((r) =>
     ['REQUESTED', 'APPROVED', 'RECEIVED'].includes(r.status),
   );
-  const nothing =
-    !a.statuses.length &&
-    !a.canShip &&
-    !a.canAddTrackingEvent &&
-    !a.canCancel &&
-    !(a.refundable > 0 && canRefund) &&
-    !pendingManual.length &&
-    !openReturns.length;
+  const writeActions =
+    a.statuses.length > 0 ||
+    a.canShip ||
+    a.canAddTrackingEvent ||
+    a.canCancel ||
+    openReturns.length > 0;
+  const refundActions = a.refundable > 0 || pendingManual.length > 0;
+  const nothing = !writeActions && !refundActions;
+  const permitted = (canWrite && writeActions) || (canRefund && refundActions);
 
   return (
     <section
@@ -133,7 +134,7 @@ export function OrderActions({
       {nothing && (
         <p className="text-small text-text-muted">Nothing to do for this order right now.</p>
       )}
-      {!canWrite && !canRefund && !nothing && (
+      {!nothing && !permitted && (
         <p className="text-small text-text-muted">You can view this order but not change it.</p>
       )}
       <div className="flex flex-col gap-2">

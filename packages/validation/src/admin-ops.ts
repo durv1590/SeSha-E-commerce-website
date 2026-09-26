@@ -141,7 +141,11 @@ export const couponInputSchema = z
         message: 'A maximum discount only applies to percentage coupons',
       });
     if (c.startsAt && c.endsAt && c.startsAt >= c.endsAt)
-      ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'The end must be after the start' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endsAt'],
+        message: 'The end must be after the start',
+      });
     if (c.type === 'FIXED' && c.minCartValue > 0 && c.value > c.minCartValue)
       ctx.addIssue({
         code: 'custom',
@@ -171,7 +175,10 @@ export const auditQuerySchema = z
     to: isoDay,
     ...pageFields,
   })
-  .refine((q) => !q.from || !q.to || q.from <= q.to, { path: ['to'], message: 'The end date is before the start date' });
+  .refine((q) => !q.from || !q.to || q.from <= q.to, {
+    path: ['to'],
+    message: 'The end date is before the start date',
+  });
 export type AuditQuery = z.infer<typeof auditQuerySchema>;
 
 export const STAFF_ROLES_EDITABLE = [
@@ -202,8 +209,8 @@ export const salesReportQuerySchema = z
     groupBy: z.enum(['day', 'month']).default('day'),
   })
   .refine((q) => q.from <= q.to, { path: ['to'], message: 'The end date is before the start date' })
-  .refine(
-    (q) => (new Date(q.to).getTime() - new Date(q.from).getTime()) / 86_400_000 <= 731,
-    { path: ['to'], message: 'Choose at most two years' },
-  );
+  .refine((q) => (new Date(q.to).getTime() - new Date(q.from).getTime()) / 86_400_000 <= 731, {
+    path: ['to'],
+    message: 'Choose at most two years',
+  });
 export type SalesReportQuery = z.infer<typeof salesReportQuerySchema>;

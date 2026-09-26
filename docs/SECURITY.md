@@ -156,7 +156,37 @@ private, no-store`.
   invalidates all refresh tokens and outstanding codes.
 - Generate secrets with `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
 
+## Admin
+
+- **Access:** `/admin` pages require a staff session (customers get a 404, signed-out visitors
+  the sign-in page) and each page checks its permission; every `/admin` API route declares a
+  permission (enforced by a test). The UI hiding a button is convenience only.
+- **Least privilege:** refunds, customer suspension, settings, the audit log and product
+  deletion are admin-only; staff management is super-admin-only. Staff can't change their own
+  role or status, and the last active super admin can't be removed.
+- **Staff lifecycle:** invitations never contain a password (the person sets one through
+  "Forgot password", which proves control of the mailbox). Role changes apply on the next
+  request; suspension or removal revokes every session immediately. Customer suspension does
+  the same.
+- **Uploads:** decoded with sharp (declared type and name ignored), raster formats only (SVG
+  refused), minimum size, 8 MB and pixel-count limits, re-encoded to WebP with metadata (EXIF,
+  GPS) stripped, stored under random lowercase keys. Category, brand, banner and SEO image
+  fields accept only uploaded media paths or https URLs.
+- **Links and content:** banner links must be site paths or https; CMS pages are restricted
+  Markdown rendered straight to React elements (no HTML from the database; `javascript:` and
+  protocol-relative links are shown as text). Tested with script and event-handler payloads.
+- **CSV:** exports prefix spreadsheet formulas (`= + - @`) with an apostrophe; imports are
+  size- and row-limited, reject non-UTF-8 files and apply all-or-nothing after validation.
+- **Integrity:** product saves use optimistic concurrency; stock adjustments lock the row and
+  can't go below reserved units (with the database CHECK as a backstop); every monetary and
+  stock action is ledgered and audit-logged in the same transaction.
+- **Cache revalidation:** `/internal/revalidate` requires `REVALIDATE_SECRET` (constant-time
+  comparison, 404 on mismatch), accepts only known tags, and is blocked at nginx.
+
 ## Audit log
 
 Security-relevant events are written to `audit_logs`: registration, lockouts, password changes and
-resets, settings changes, and the super-admin seed. Admin actions are added in Phase 10.
+resets, and the super-admin seed, plus every admin change: orders and refunds, products and
+stock, categories and brands, coupons, customers, reviews, banners, homepage, pages, SEO,
+settings and staff. Entries record the staff member, IP, user agent and a summary of the change;
+they are append-only and readable by admins in **Audit log**.

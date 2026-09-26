@@ -1,6 +1,6 @@
 'use client';
 
-import type { MeDto } from '@seshakart/types';
+import { STAFF_ROLES, type MeDto } from '@seshakart/types';
 import { DropdownMenu, buttonVariants, cn } from '@seshakart/ui';
 import { ChevronDown, UserRound } from 'lucide-react';
 import Link from 'next/link';
@@ -62,10 +62,14 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
         </>
       }
       items={[
+        ...(STAFF_ROLES.includes(user.role)
+          ? [{ label: 'Admin', onSelect: () => router.push('/admin') }]
+          : []),
         { label: 'My account', onSelect: () => router.push('/account') },
         { label: 'Orders', onSelect: () => router.push('/account/orders') },
         { label: 'Profile', onSelect: () => router.push('/account/profile') },
         { label: 'Addresses', onSelect: () => router.push('/account/addresses') },
+        { label: 'Reviews', onSelect: () => router.push('/account/reviews') },
         { label: 'Notifications', onSelect: () => router.push('/account/notifications') },
         {
           label: 'Sign out',
