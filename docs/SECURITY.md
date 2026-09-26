@@ -105,6 +105,18 @@ app header (tested). Payment and logistics webhooks (Phase 8) use signature veri
   10/min per IP, and each order needs a fresh idempotency key.
 - Webhook payloads are stored for audit and idempotency (they contain no card data).
 
+## Orders
+
+- Order detail, cancellation, returns and invoices need the customer's session or the guest's
+  order token; any other order returns 404, so sequential order numbers can't be probed.
+- Public tracking requires the order number **and** the email or mobile used, is limited to
+  10 lookups per 10 minutes per IP, and returns no address, prices or item names.
+- Every staff action on orders (status, dispatch, tracking, cancellation, returns, refunds) needs
+  a specific permission (`orders:read`, `orders:write`, `orders:refund`) and is written to the
+  audit log with the actor, IP and user agent (tested).
+- Invoices are generated on demand from the order record and served with `Cache-Control:
+private, no-store`.
+
 ## HTTP security headers
 
 - **API:** Helmet with `default-src 'none'`, `frame-ancestors 'none'`, `nosniff` and a

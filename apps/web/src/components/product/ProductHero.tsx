@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { ApiError } from '@/lib/api/errors';
 import { addToCart } from '@/lib/cart/store';
 import { WishlistButton } from '../cart/WishlistButton';
+import { DeliveryCheck } from './DeliveryCheck';
 import { ProductGallery } from './ProductGallery';
 import { ShareButton } from './ShareButton';
 import { availableValues, optionValues, orderOptionNames, selectValue } from './variant-selection';
@@ -229,6 +230,8 @@ export function ProductHero({
             className="h-control-lg justify-center"
           />
         </div>
+
+        <DeliveryCheck codAllowed={product.isCodAvailable} />
 
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 rounded-card border border-border bg-surface p-4 text-small sm:grid-cols-3">
           <li className="flex items-start gap-2">

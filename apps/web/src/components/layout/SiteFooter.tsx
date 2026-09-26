@@ -21,6 +21,8 @@ export async function SiteFooter() {
               ['/login', 'Sign in'],
               ['/register', 'Create account'],
               ['/account', 'My account'],
+              ['/account/orders', 'Your orders'],
+              ['/track-order', 'Track an order'],
               ['/account/addresses', 'Saved addresses'],
             ].map(([href, label]) => (
               <li key={href}>

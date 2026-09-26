@@ -63,6 +63,7 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
       }
       items={[
         { label: 'My account', onSelect: () => router.push('/account') },
+        { label: 'Orders', onSelect: () => router.push('/account/orders') },
         { label: 'Profile', onSelect: () => router.push('/account/profile') },
         { label: 'Addresses', onSelect: () => router.push('/account/addresses') },
         { label: 'Notifications', onSelect: () => router.push('/account/notifications') },

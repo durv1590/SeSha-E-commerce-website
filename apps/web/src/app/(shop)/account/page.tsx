@@ -1,6 +1,6 @@
 import type { AddressDto } from '@seshakart/types';
 import { Alert, Card } from '@seshakart/ui';
-import { Bell, ChevronRight, MapPin, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, ChevronRight, MapPin, Package, ShieldCheck, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { serverApi } from '@/lib/api/server';
 import { requireUser } from '@/lib/auth/session';
@@ -21,6 +21,12 @@ export default async function AccountOverviewPage() {
     (user.email && !user.emailVerified) || (user.phone && !user.phoneVerified);
 
   const cards = [
+    {
+      href: '/account/orders',
+      icon: Package,
+      title: 'Orders',
+      text: 'Track, return or buy again',
+    },
     {
       href: '/account/profile',
       icon: UserRound,
@@ -51,7 +57,7 @@ export default async function AccountOverviewPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-h1">Hello, {user.name.split(' ')[0]}</h1>
-        <p className="mt-1 text-text-muted">Manage your details, addresses and security.</p>
+        <p className="mt-1 text-text-muted">Your orders, details, addresses and security.</p>
       </div>
       {needsVerification && (
         <Alert

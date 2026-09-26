@@ -78,6 +78,11 @@
 | 41  | **The client sends the total it saw; the server refuses a different one**                                                              | Prices can change between viewing and paying; the shopper confirms the new total instead of being charged silently.                                                                               |
 | 42  | **Gateway order created before the database transaction**                                                                              | A slow gateway never holds stock locks; an unused gateway order is harmless.                                                                                                                      |
 | 43  | **Guest order access by a token bound to the guest's cart credential**                                                                 | Guests can see and pay for their order without an account; a leaked idempotency key alone can't retrieve it.                                                                                      |
+| 44  | **One order state machine**, checked on every customer and staff change                                                                | Illegal jumps (e.g. shipped → cancelled) are impossible from any entry point; the table is unit-tested.                                                                                           |
+| 45  | **Logistics behind a provider interface**, manual provider first                                                                       | The store can ship on day one; Shiprocket/Delhivery/others slot in without touching order logic. Tracking links are never guessed.                                                                |
+| 46  | **Serviceability and ETAs from admin settings** (PIN prefixes, day ranges)                                                             | Works without a courier API; the same rules drive the PIN checker, checkout and order estimates.                                                                                                  |
+| 47  | **Invoice numbered at dispatch from a database sequence; PDF generated on demand**                                                     | GST time of supply is dispatch; sequential numbers per financial year; nothing to store or leak. Fonts ship with the API so ₹ always renders.                                                     |
+| 48  | **COD cash becomes a payment record on delivery**                                                                                      | Returns and refunds work the same for COD and prepaid; COD refunds are manual with a reference.                                                                                                   |
 
 ## Request lifecycle (API)
 
@@ -325,3 +330,39 @@ checks responsive behaviour, and records decisions here.
   - The form-level error stayed after the shopper corrected the fields.
   - A description list on the confirmation page held a paragraph (invalid markup).
   - The concurrency test now accepts both correct refusals, depending on timing.
+
+### Phase 9: orders and shipping ✅
+
+- **API:**
+  - Order state machine; customer order list and detail (timeline, delivery estimate,
+    shipments, returns, refunds, allowed actions), cancellation until packed (release or restock,
+    coupon returned, online payments refunded), returns and replacements per product return
+    window, public tracking with order number plus email or mobile.
+  - Staff fulfilment API (permission-gated, audit-logged): processing and packed, dispatch with
+    carrier and tracking number, tracking events (delivery, failed attempt, returned to seller),
+    cancellation, return processing with restock and refund, gateway and manual refunds.
+  - Logistics provider interface with a manual provider; shipping settings for serviceability,
+    COD and express by PIN code and delivery windows in business days; checkout enforces them.
+  - GST invoices: numbered at dispatch (`SK/26-27/000123`), PDF with CGST/SGST or IGST, HSN,
+    coupon shares, amount in words, embedded Inter fonts (with ₹) and the logo.
+  - Refunds on orders still being fulfilled no longer change the order status; refund and
+    status emails.
+  - Migration for invoice numbers, shipped and resolved dates, and refund references; 15 unit tests
+    (state machine, delivery estimates, invoice maths) and 14 integration tests.
+- **Web:**
+  - `/account/orders` with filters; `/account/orders/[orderNumber]` with the progress timeline,
+    tracking, items, returns, refunds, price details, invoice download, and cancel and
+    return/replace dialogs.
+  - `/track-order` for everyone; a delivery checker (PIN code → dates and COD) on product pages;
+    checkout re-prices by PIN code and falls back when COD or express isn't available.
+  - Orders in the account menu, navigation, overview, footer and mobile menu.
+- **QA:** browser runs of the PIN checker, a remote PIN at checkout, cancellation, dispatch,
+  out for delivery, delivery, invoice download, a return request, the order list and public
+  tracking (including wrong details); both invoice variants rendered and checked; axe clean;
+  no overflow at 16 widths.
+- **Bugs found and fixed:**
+  - Checkout saved a typed address to the address book even when the order was then refused.
+  - Reusing a courier tracking number gave a generic conflict; it now names the other order.
+  - Out-for-delivery orders showed the original estimate instead of today.
+  - Delivered orders with non-returnable items gave no explanation.
+  - The delivery checker's button was 4.47:1 contrast on hover.

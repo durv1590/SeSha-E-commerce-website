@@ -68,6 +68,17 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 `S3_*`, `MEDIA_BASE_URL`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_META_PIXEL_ID`.
 Each will be documented here, with its validation rules, when its module is implemented.
 
+## Store and shipping settings (admin-editable)
+
+These live in the `settings` table, not the environment (editable in the admin dashboard from
+Phase 10):
+
+- `store.registeredState` and `store.gstin`: the GST registration. Deliveries within that state
+  are invoiced with CGST + SGST, others with IGST; without a state, invoices use IGST, and without a
+  GSTIN they say "Invoice" instead of "Tax Invoice". **Set both before launch.**
+- `shipping`: delivery day ranges (standard 3–6, express 1–3 business days), remote PIN prefixes
+  (+2 days, no express), blocked PIN prefixes and COD-blocked prefixes.
+
 ## Setting up Razorpay
 
 1. In the Razorpay dashboard, create API keys (test mode first) and set `PAYMENT_PROVIDER=razorpay`,

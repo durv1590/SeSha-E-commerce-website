@@ -328,12 +328,21 @@ describe('orders, shipping and returns (integration)', () => {
         trackingUrl: null,
       });
       await ship(s, n).expect(409); // already shipped
+      const n2 = await order(c, [[f.cable.variant, 1]]);
+      const reused = await ship(s, n2).expect(409);
+      expect(reused.body.error).toMatchObject({
+        code: 'TRACKING_NUMBER_IN_USE',
+        message: `This tracking number is already used for order ${n}.`,
+      });
       expect(
         (await s.post(`/api/admin/orders/${n}/status`, { status: 'PACKED' }).expect(409)).body.error
           .code,
       ).toBe('INVALID_STATUS_CHANGE');
 
-      await event(s, n, 'OUT_FOR_DELIVERY', { location: 'Pune hub' }).expect(201);
+      const ofd = (await event(s, n, 'OUT_FOR_DELIVERY', { location: 'Pune hub' }).expect(201)).body
+        .data;
+      const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+      expect(ofd.estimatedDelivery).toEqual({ from: today, to: today });
       await event(s, n, 'FAILED', { note: 'Customer unavailable' }).expect(201);
       expect((await orderOf(n)).status).toBe('SHIPPED');
       await event(s, n, 'OUT_FOR_DELIVERY').expect(201);

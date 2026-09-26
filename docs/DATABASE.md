@@ -87,6 +87,10 @@ Other database objects:
 - `order_number_seq`: a sequence that produces human-friendly order numbers
   (`SK` + India date `YYMMDD` + at least 6 digits).
 - `orders.idempotency_key` (unique): the same place-order request never creates two orders.
+- `invoice_number_seq` and `orders.invoice_number` (unique): GST invoice numbers
+  `SK/<financial year>/<sequence>`, assigned once when the order ships.
+- Cancellations and returns put stock back with `RESTOCK` / `RETURN` ledger entries (and lower
+  `sold_count`); cash collected on delivery is recorded as a `cod` payment so it can be refunded.
 - Order stock flow, all recorded in `inventory_transactions`: `RESERVE` at placement
   (`reserved += q` only if `stock - reserved >= q`), then `SALE` at confirmation (`stock -= q`,
   `reserved -= q`, `sold_count += q`) or `RELEASE` when an unpaid order expires.
@@ -164,7 +168,8 @@ Never edit a migration that has already been applied in any shared environment. 
 - **Generated demo images** (Lucide line icons in brand colours, stamped "DEMO IMAGE").
 
 It seeds **no reviews or ratings**. `soldCount` values exist only to demonstrate "Best sellers"
-ordering. Re-running replaces the demo data. `pnpm db:seed:demo --remove` deletes every demo record
+ordering. Re-running replaces the demo data (new ids). A running storefront may serve a cached
+page from before the re-seed once (stale-while-revalidate); the next view is fresh. `pnpm db:seed:demo --remove` deletes every demo record
 and image. **Run the remove command before launch.** The command refuses to run with
 `NODE_ENV=production` unless `ALLOW_DEMO_SEED=true` (staging).
 

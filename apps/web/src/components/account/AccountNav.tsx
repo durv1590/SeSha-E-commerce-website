@@ -1,15 +1,25 @@
 'use client';
 
 import { cn } from '@seshakart/ui';
-import { Bell, Heart, LayoutDashboard, LogOut, MapPin, ShieldCheck, UserRound } from 'lucide-react';
+import {
+  Bell,
+  Heart,
+  LayoutDashboard,
+  Package,
+  LogOut,
+  MapPin,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api/browser';
 import { refreshCartState } from '@/lib/cart/store';
 
-// Orders and reviews join this list in their phases.
+// Reviews join this list in their phase.
 const ITEMS = [
   { href: '/account', label: 'Overview', icon: LayoutDashboard },
+  { href: '/account/orders', label: 'Orders', icon: Package },
   { href: '/account/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/account/profile', label: 'Profile', icon: UserRound },
   { href: '/account/addresses', label: 'Addresses', icon: MapPin },

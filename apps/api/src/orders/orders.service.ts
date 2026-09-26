@@ -169,6 +169,10 @@ export class OrdersService {
     order: Order,
     shipments: { estimatedDelivery: Date | null; isReturn: boolean }[],
   ) {
+    if (order.status === 'OUT_FOR_DELIVERY') {
+      const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+      return { from: today, to: today };
+    }
     const eta = shipments.find((s) => !s.isReturn && s.estimatedDelivery)?.estimatedDelivery;
     if (eta) {
       const d = eta.toISOString().slice(0, 10);
@@ -570,6 +574,16 @@ export class OrdersService {
         HttpStatus.CONFLICT,
         'INVALID_STATUS_CHANGE',
         'Only confirmed orders that haven’t shipped can be dispatched.',
+      );
+    const duplicate = await this.prisma.shipment.findFirst({
+      where: { carrier: input.carrier, trackingNumber: input.trackingNumber },
+      include: { order: { select: { orderNumber: true } } },
+    });
+    if (duplicate)
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        'TRACKING_NUMBER_IN_USE',
+        `This tracking number is already used for order ${duplicate.order.orderNumber}.`,
       );
     const a = order.shippingAddress as Record<string, string | null>;
     const created = await this.provider.createShipment(

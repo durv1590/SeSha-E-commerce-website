@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { hasSession } from '@/lib/api/browser';
 import { ApiError } from '@/lib/api/errors';
 import { orderApi } from '@/lib/checkout/api';
 import { usePayment } from './usePayment';
@@ -174,6 +175,14 @@ export function OrderResult({ mode }: { mode: 'success' | 'failed' }) {
         >
           Continue shopping
         </Link>
+        {hasSession() && (confirmed || cancelled) && (
+          <Link
+            href={`/account/orders/${order.orderNumber}`}
+            className={buttonVariants({ variant: 'outline', size: 'lg' })}
+          >
+            View order details
+          </Link>
+        )}
       </div>
 
       <section

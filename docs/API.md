@@ -281,4 +281,50 @@ arrives after an order was cancelled is **refunded automatically**. Refunds (ful
 through the gateway; the order moves to `REFUND_INITIATED` and then `REFUNDED` when the gateway
 reports the refund processed.
 
-Orders, returns and admin endpoints are documented here as their phases land.
+### Orders: `/orders` (customers; guests with `X-Order-Token`)
+
+| Method | Path                           | Description                                                                                                                                                                                                            |
+| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/orders?filter=&page=`        | The customer's orders (`all`, `active`, `delivered`, `cancelled`, `returns`), newest first. Sign-in required                                                                                                           |
+| GET    | `/orders/:orderNumber`         | Full detail: timeline, delivery estimate, shipments and tracking events, items with returnable quantities, returns, refunds, invoice, allowed actions                                                                  |
+| POST   | `/orders/:orderNumber/cancel`  | `{ reason, comments? }`. Until the order is packed. Held stock is released, sold stock restocked, the coupon use given back, and a captured online payment refunded in full                                            |
+| POST   | `/orders/:orderNumber/returns` | `{ type: "RETURN" \| "REPLACEMENT", reason, comments?, items: [{ orderItemId, quantity }] }`. Delivered orders, within each product's return window, for returnable products, up to the quantity not already requested |
+| GET    | `/orders/:orderNumber/invoice` | GST invoice PDF (`attachment`), available once the order has shipped (`INVOICE_NOT_READY` before)                                                                                                                      |
+| POST   | `/orders/track`                | `{ orderNumber, contact }` (email or mobile used for the order). Public, 10 per 10 minutes. Returns status, timeline and tracking only: no address, prices or items                                                    |
+
+Anything that isn't the caller's order returns 404. Reasons are fixed lists (`CANCEL_REASONS`,
+`RETURN_REASONS` in `@seshakart/validation`).
+
+### Shipping
+
+| Method | Path                                      | Description                                                                                                             |
+| ------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/shipping/serviceability?pincode=411001` | `{ serviceable, codAvailable, standard: { from, to }, express, message }`. Dates are India-time business days (Mon–Sat) |
+
+Serviceability comes from the admin's `shipping` settings: blocked PIN prefixes, COD-blocked
+prefixes, remote prefixes (slower, no express by default) and day ranges per method. Checkout
+applies the same rules: `NOT_SERVICEABLE` (422, field `shippingAddress.pincode`), and express or
+COD become unavailable where the rules say so. `POST /checkout/quote` accepts an optional
+`pincode` so the page can show this before the order is placed.
+
+### Staff: `/admin` (permission-gated, audit-logged)
+
+| Method | Path                                          | Permission      | Description                                                                                                                                                                                                                                                                   |
+| ------ | --------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/admin/orders/:orderNumber`                  | `orders:read`   | Order detail                                                                                                                                                                                                                                                                  |
+| POST   | `/admin/orders/:orderNumber/status`           | `orders:write`  | `{ status: "PROCESSING" \| "PACKED", note? }`                                                                                                                                                                                                                                 |
+| POST   | `/admin/orders/:orderNumber/shipments`        | `orders:write`  | `{ carrier, trackingNumber, trackingUrl?, estimatedDelivery? }`: dispatches the order (SHIPPED), issues the invoice number, emails the customer. `TRACKING_NUMBER_IN_USE` if the carrier's number is already used                                                             |
+| POST   | `/admin/orders/:orderNumber/shipments/events` | `orders:write`  | `{ status: IN_TRANSIT \| OUT_FOR_DELIVERY \| DELIVERED \| FAILED \| RETURNED, location?, note?, at? }`. Delivery records the cash collected for COD; `RETURNED` (undeliverable) restocks and refunds prepaid orders; `FAILED` moves an out-for-delivery order back to shipped |
+| POST   | `/admin/orders/:orderNumber/cancel`           | `orders:write`  | `{ reason }`: until packed                                                                                                                                                                                                                                                    |
+| POST   | `/admin/orders/:orderNumber/refunds`          | `orders:refund` | `{ amount?, reason }`: gateway refund (or a manual one for COD)                                                                                                                                                                                                               |
+| POST   | `/admin/returns/:id`                          | `orders:write`  | `{ action: approve \| reject \| receive \| complete, note?, restock? }`. Receive restocks; completing a return refunds what was paid for those units (coupon share excluded); rejecting the last open request returns the order to DELIVERED                                  |
+| POST   | `/admin/refunds/:id/complete`                 | `orders:refund` | `{ reference }`: records a manual (COD) refund as paid, with the bank/UPI reference                                                                                                                                                                                           |
+
+**Order lifecycle** (`apps/api/src/orders/order-status.ts`): `PENDING → PAYMENT_PENDING →
+CONFIRMED → PROCESSING → PACKED → SHIPPED → OUT_FOR_DELIVERY → DELIVERED → RETURN_REQUESTED →
+RETURNED`, with `CANCELLED` possible until packed, and `REFUND_INITIATED → REFUNDED` after a
+cancellation or return. Any other change is refused (`INVALID_STATUS_CHANGE`). Refunds on an order
+that is still being fulfilled don't change its status. Customers get emails when an order ships,
+goes out for delivery, is delivered, is cancelled or refunded, and as a return progresses.
+
+The admin dashboard (Phase 10) builds on these endpoints.

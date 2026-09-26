@@ -20,6 +20,8 @@ const ACCOUNT = [
   { href: '/cart', label: 'Cart' },
   { href: '/account/addresses', label: 'Saved addresses' },
   { href: '/account/notifications', label: 'Notifications' },
+  { href: '/account/orders', label: 'Orders' },
+  { href: '/track-order', label: 'Track an order' },
 ];
 
 const itemClass =

@@ -112,13 +112,22 @@ export function CheckoutView() {
     );
   }, []);
 
-  const loadQuote = useCallback(async (d: Delivery, p: Payment) => {
+  // The delivery PIN code decides express and cash-on-delivery availability.
+  const pincode =
+    choice === 'new'
+      ? /^[1-9]\d{5}$/.test(shipping.pincode)
+        ? shipping.pincode
+        : undefined
+      : addresses.find((a) => a.id === choice)?.pincode;
+
+  const loadQuote = useCallback(async (d: Delivery, p: Payment, pin?: string) => {
     setQuoting(true);
     try {
       setQuote(
         await api.post<CheckoutQuoteDto>('/checkout/quote', {
           deliveryMethod: d,
           paymentMethod: p,
+          ...(pin ? { pincode: pin } : {}),
         }),
       );
       setQuoteError(null);
@@ -130,8 +139,14 @@ export function CheckoutView() {
   }, []);
 
   useEffect(() => {
-    void loadQuote(delivery, payment);
-  }, [delivery, payment, loadQuote]);
+    void loadQuote(delivery, payment, pincode);
+  }, [delivery, payment, pincode, loadQuote]);
+
+  // Express isn't offered everywhere (e.g. remote PIN codes): fall back to standard.
+  useEffect(() => {
+    const express = quote?.deliveryOptions.find((o) => o.method === 'EXPRESS');
+    if (delivery === 'EXPRESS' && express && !express.available) setDelivery('STANDARD');
+  }, [quote, delivery]);
 
   // If the chosen payment method stops being available (e.g. COD limit), fall back.
   useEffect(() => {
@@ -217,7 +232,11 @@ export function CheckoutView() {
         return setFormError('Something went wrong. Please try again.');
       // A definitive answer: the next attempt is a new request.
       if (err.status !== 0 && err.status < 500) key.current = '';
-      if (err.code === 'VALIDATION_FAILED' || err.code === 'CONTACT_REQUIRED') {
+      if (
+        err.code === 'VALIDATION_FAILED' ||
+        err.code === 'CONTACT_REQUIRED' ||
+        (err.code === 'NOT_SERVICEABLE' && choice === 'new')
+      ) {
         const mapped: Errors = {};
         for (const [path, message] of Object.entries(err.fieldErrors()))
           mapped[
@@ -228,7 +247,7 @@ export function CheckoutView() {
         return setFormError(err.message);
       }
       if (err.code === 'PRICE_CHANGED') {
-        await loadQuote(delivery, payment);
+        await loadQuote(delivery, payment, pincode);
         return setFormError(<>{err.message} The summary has been updated.</>);
       }
       if (
@@ -236,7 +255,7 @@ export function CheckoutView() {
           err.code,
         )
       ) {
-        await loadQuote(delivery, payment);
+        await loadQuote(delivery, payment, pincode);
         return setFormError(
           <>
             {err.message} {cartLink}
