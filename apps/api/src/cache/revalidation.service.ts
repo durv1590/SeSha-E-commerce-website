@@ -4,7 +4,10 @@ import type { Env } from '../config/env';
 import { CATALOG_CACHE_PREFIX } from '../catalog/category.service';
 import { CacheService } from './cache.service';
 
-export type WebTag = 'catalog' | 'settings';
+export type WebTag = 'catalog' | 'settings' | 'content';
+
+/** Redis prefix for CMS pages and SEO overrides. */
+export const CONTENT_CACHE_PREFIX = 'content:';
 
 /**
  * After admin changes, cached copies must not linger: the API's Redis cache is cleared
@@ -30,6 +33,12 @@ export class RevalidationService {
     await this.cache.delByPrefix('settings:');
     await this.cache.delByPrefix(CATALOG_CACHE_PREFIX);
     await this.web(['settings', 'catalog']);
+  }
+
+  /** CMS pages and SEO overrides. */
+  async contentChanged(): Promise<void> {
+    await this.cache.delByPrefix(CONTENT_CACHE_PREFIX);
+    await this.web(['content']);
   }
 
   private async web(tags: WebTag[]): Promise<void> {

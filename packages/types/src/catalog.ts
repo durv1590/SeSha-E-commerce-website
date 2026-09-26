@@ -193,3 +193,22 @@ export interface PopularSearches {
   trending: string[];
   popular: string[];
 }
+
+/** A published CMS page (policies, about us). `content` is the restricted Markdown source. */
+export interface CmsPageDto {
+  slug: string;
+  title: string;
+  content: string;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  updatedAt: string;
+}
+
+/** Admin SEO override for one storefront path. */
+export interface SeoOverrideDto {
+  path: string;
+  title: string | null;
+  description: string | null;
+  ogImage: string | null;
+  noindex: boolean;
+}

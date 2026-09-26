@@ -352,3 +352,60 @@ export interface AdminCouponDto {
   discountGiven: number;
   createdAt: string;
 }
+
+// -------------------------------------------------------------------- content
+
+export interface AdminBannerDto {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  ctaLabel: string | null;
+  link: string | null;
+  placement: 'HOME_HERO' | 'HOME_PROMO' | 'CATEGORY_TOP';
+  theme: 'PRIMARY' | 'NAVY' | 'ACCENT' | 'LIGHT';
+  imageDesktop: string | null;
+  imageTablet: string | null;
+  imageMobile: string | null;
+  imageAlt: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  priority: number;
+  isActive: boolean;
+  /** Derived: showing now, scheduled, ended or off. */
+  state: 'live' | 'scheduled' | 'ended' | 'off';
+  updatedAt: string;
+}
+
+export interface AdminHomeSectionDto {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  source: 'BEST_SELLERS' | 'NEW_ARRIVALS' | 'FEATURED' | 'DEALS' | 'CATEGORY';
+  categoryId: string | null;
+  categoryName: string | null;
+  limit: number;
+  position: number;
+  isActive: boolean;
+}
+
+export interface AdminPageDto {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  isPublished: boolean;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+export interface AdminSeoOverrideDto {
+  id: string;
+  path: string;
+  title: string | null;
+  description: string | null;
+  ogImage: string | null;
+  noindex: boolean;
+  updatedAt: string;
+}

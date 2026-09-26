@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { type Prisma, PrismaClient } from '@prisma/client';
 import { emailSchema, passwordSchema, SETTINGS_SCHEMAS } from '@seshakart/validation';
 import { hashPassword } from '../common/security/password';
+import { DEFAULT_PAGES } from './default-pages';
 
 const rootEnv = join(__dirname, '..', '..', '..', '..', '.env');
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
@@ -74,10 +75,20 @@ async function seedSuperAdmin(): Promise<void> {
   console.log(`  super admin: created ${email}`);
 }
 
+async function seedPages(): Promise<void> {
+  for (const page of DEFAULT_PAGES) {
+    const existing = await prisma.page.findUnique({ where: { slug: page.slug } });
+    if (existing) continue;
+    await prisma.page.create({ data: { ...page, isPublished: false } });
+    console.log(`  page /pages/${page.slug}: draft created (review and publish in Admin → Pages)`);
+  }
+}
+
 async function main(): Promise<void> {
   console.log('Seeding base data…');
   await seedSettings();
   await seedSuperAdmin();
+  await seedPages();
   console.log('Done.');
 }
 

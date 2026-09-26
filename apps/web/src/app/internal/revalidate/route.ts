@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { revalidateTag } from 'next/cache';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const ALLOWED = new Set(['catalog', 'settings']);
+const ALLOWED = new Set(['catalog', 'settings', 'content']);
 
 function secretMatches(given: string | null): boolean {
   const expected = process.env.REVALIDATE_SECRET;
