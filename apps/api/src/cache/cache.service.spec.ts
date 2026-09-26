@@ -53,7 +53,10 @@ describe.each([
     });
 
     it('keeps hot values parsed in-process, frozen, and drops them on invalidation', async () => {
-      const load = jest.fn().mockResolvedValue({ roots: [{ slug: 'audio', children: [] }] });
+      type Tree = { roots: { slug: string; children: unknown[] }[] };
+      const load = jest.fn<Promise<Tree>, []>().mockResolvedValue({
+        roots: [{ slug: 'audio', children: [] }],
+      });
       const a = await ctx.cache.wrap('catalog:hot', 60, load, { localSeconds: 10 });
       const b = await ctx.cache.wrap('catalog:hot', 60, load, { localSeconds: 10 });
       expect(b).toBe(a); // same parsed object: no Redis round trip or JSON.parse

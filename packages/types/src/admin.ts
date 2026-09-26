@@ -1,3 +1,4 @@
+import type { OrderStatus, PaymentMethod, PaymentStatus, RefundStatus, Role } from './enums';
 import type { OrderDetailDto } from './orders';
 
 /** Admin contracts. Amounts in paise. */
@@ -40,7 +41,7 @@ export interface DashboardDto {
     orderNumber: string;
     customer: string;
     total: number;
-    status: import('./enums').OrderStatus;
+    status: OrderStatus;
     statusLabel: string;
     placedAt: string;
   }[];
@@ -233,10 +234,10 @@ export interface AdminOrderListItemDto {
   userId: string | null;
   itemCount: number;
   total: number;
-  status: import('./enums').OrderStatus;
+  status: OrderStatus;
   statusLabel: string;
-  paymentMethod: import('./enums').PaymentMethod;
-  paymentStatus: import('./enums').PaymentStatus | null;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus | null;
   city: string;
 }
 
@@ -247,7 +248,7 @@ export interface AdminOrderDto extends OrderDetailDto {
   payments: {
     provider: string;
     method: string | null;
-    status: import('./enums').PaymentStatus;
+    status: PaymentStatus;
     amount: number;
     reference: string | null;
     error: string | null;
@@ -258,7 +259,7 @@ export interface AdminOrderDto extends OrderDetailDto {
   staffRefunds: {
     id: string;
     amount: number;
-    status: import('./enums').RefundStatus;
+    status: RefundStatus;
     manual: boolean;
     reason: string | null;
     reference: string | null;
@@ -267,8 +268,8 @@ export interface AdminOrderDto extends OrderDetailDto {
     processedAt: string | null;
   }[];
   history: {
-    from: import('./enums').OrderStatus | null;
-    to: import('./enums').OrderStatus;
+    from: OrderStatus | null;
+    to: OrderStatus;
     toLabel: string;
     note: string | null;
     actor: string | null;
@@ -461,7 +462,7 @@ export interface StaffMemberDto {
   name: string;
   email: string | null;
   phone: string | null;
-  role: import('./enums').Role;
+  role: Role;
   status: 'ACTIVE' | 'SUSPENDED';
   lastLoginAt: string | null;
   createdAt: string;
