@@ -387,7 +387,9 @@ model Product {
   wishlistItems WishlistItem[]
   orderItems    OrderItem[]
 
-  @@index([status, categoryId])
+  /// Listing filters and facet counts (brand, category, price range, in stock) are
+  /// index-only scans with every column in this key.
+  @@index([status, categoryId, brandId, minPrice, availableStock], map: "products_listing_facets_idx")
   @@index([status, brandId])
   @@index([status, minPrice])
   @@index([status, publishedAt(sort: Desc)])

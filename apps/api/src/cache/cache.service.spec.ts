@@ -52,6 +52,32 @@ describe.each([
       expect(await ctx.cache.get('home:page')).toBe(3);
     });
 
+    it('keeps hot values parsed in-process, frozen, and drops them on invalidation', async () => {
+      const load = jest.fn().mockResolvedValue({ roots: [{ slug: 'audio', children: [] }] });
+      const a = await ctx.cache.wrap('catalog:hot', 60, load, { localSeconds: 10 });
+      const b = await ctx.cache.wrap('catalog:hot', 60, load, { localSeconds: 10 });
+      expect(b).toBe(a); // same parsed object: no Redis round trip or JSON.parse
+      expect(Object.isFrozen(a.roots[0])).toBe(true);
+      expect(() => (a.roots as unknown[]).push(1)).toThrow(TypeError);
+
+      await ctx.cache.delByPrefix('catalog:');
+      load.mockResolvedValue({ roots: [] });
+      expect(await ctx.cache.wrap('catalog:hot', 60, load, { localSeconds: 10 })).toEqual({
+        roots: [],
+      });
+      expect(load).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-reads the shared cache once the local copy expires', async () => {
+      const load = jest.fn().mockResolvedValue('v1');
+      await ctx.cache.wrap('catalog:brief', 60, load, { localSeconds: 1 });
+      await ctx.cache.set('catalog:brief', 'v2', 60); // e.g. written by another instance
+      expect(await ctx.cache.wrap('catalog:brief', 60, load, { localSeconds: 1 })).toBe('v1');
+      await new Promise((r) => setTimeout(r, 1100));
+      expect(await ctx.cache.wrap('catalog:brief', 60, load, { localSeconds: 1 })).toBe('v2');
+      expect(load).toHaveBeenCalledTimes(1);
+    });
+
     it('expires entries after their TTL', async () => {
       await ctx.cache.set('short', 'x', 1);
       await new Promise((r) => setTimeout(r, 1100));

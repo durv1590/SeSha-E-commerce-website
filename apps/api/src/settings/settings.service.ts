@@ -7,6 +7,8 @@ import { RevalidationService } from '../cache/revalidation.service';
 import { PrismaService } from '../database/prisma.service';
 
 const TTL_SECONDS = 300;
+/** Read on most requests (checkout, shipping, public settings): keep parsed in-process. */
+const SETTINGS_LOCAL = { localSeconds: 10 };
 
 /** Typed, validated, cached access to admin-editable settings. */
 @Injectable()
@@ -21,16 +23,21 @@ export class SettingsService {
   ) {}
 
   async get<K extends SettingsKey>(key: K): Promise<SettingsValue<K>> {
-    return this.cache.wrap(`settings:${key}`, TTL_SECONDS, async () => {
-      const row = await this.prisma.setting.findUnique({ where: { key } });
-      const parsed = SETTINGS_SCHEMAS[key].safeParse(row?.value ?? {});
-      if (!parsed.success) {
-        // A corrupt row must never take checkout down: log loudly and use defaults.
-        this.logger.error(`Invalid stored settings "${key}", falling back to defaults`);
-        return SETTINGS_SCHEMAS[key].parse({}) as SettingsValue<K>;
-      }
-      return parsed.data as SettingsValue<K>;
-    });
+    return this.cache.wrap(
+      `settings:${key}`,
+      TTL_SECONDS,
+      async () => {
+        const row = await this.prisma.setting.findUnique({ where: { key } });
+        const parsed = SETTINGS_SCHEMAS[key].safeParse(row?.value ?? {});
+        if (!parsed.success) {
+          // A corrupt row must never take checkout down: log loudly and use defaults.
+          this.logger.error(`Invalid stored settings "${key}", falling back to defaults`);
+          return SETTINGS_SCHEMAS[key].parse({}) as SettingsValue<K>;
+        }
+        return parsed.data as SettingsValue<K>;
+      },
+      SETTINGS_LOCAL,
+    );
   }
 
   async update<K extends SettingsKey>(

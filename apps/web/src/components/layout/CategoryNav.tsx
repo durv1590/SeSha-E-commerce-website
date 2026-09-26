@@ -2,10 +2,14 @@ import type { CategoryNode } from '@seshakart/types';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
+const MAX_LEAVES = 6;
+
 /**
  * Desktop category navigation (≥ 1024 px). Top-level categories with a hover/focus
  * dropdown of sub-categories — pure CSS (:hover / :focus-within), no JavaScript.
- * Driven entirely by the admin-managed category tree.
+ * Driven entirely by the admin-managed category tree. Each group lists at most
+ * MAX_LEAVES sub-categories (then "View all"), so a large catalogue doesn't put
+ * hundreds of links into every page.
  */
 export function CategoryNav({ tree }: { tree: CategoryNode[] }) {
   if (tree.length === 0) return null;
@@ -38,7 +42,7 @@ export function CategoryNav({ tree }: { tree: CategoryNode[] }) {
                       </Link>
                       {child.children.length > 0 && (
                         <ul className="mt-1.5 flex flex-col gap-1">
-                          {child.children.map((g) => (
+                          {child.children.slice(0, MAX_LEAVES).map((g) => (
                             <li key={g.id}>
                               <Link
                                 href={`/category/${g.slug}`}
@@ -48,6 +52,17 @@ export function CategoryNav({ tree }: { tree: CategoryNode[] }) {
                               </Link>
                             </li>
                           ))}
+                          {child.children.length > MAX_LEAVES && (
+                            <li>
+                              <Link
+                                href={`/category/${child.slug}`}
+                                className="text-small font-semibold no-underline hover:underline"
+                                aria-label={`View all ${child.name}`}
+                              >
+                                View all
+                              </Link>
+                            </li>
+                          )}
                         </ul>
                       )}
                     </li>

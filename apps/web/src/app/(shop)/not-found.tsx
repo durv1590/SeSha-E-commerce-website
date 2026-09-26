@@ -7,6 +7,7 @@ export default function NotFound() {
     <div className="container-page py-section">
       <EmptyState
         icon={<Compass size={28} aria-hidden="true" />}
+        headingLevel="h1"
         title="We couldn’t find that page"
         description="The link may be broken or the page may have moved."
         action={

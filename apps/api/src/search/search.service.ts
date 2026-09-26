@@ -36,6 +36,8 @@ const MAX_RESULTS = 500;
 const SEARCH_TTL = 120;
 const TYPO_MIN_SIMILARITY = 0.3;
 const FUZZY_MIN_WORD_SIMILARITY = 0.45;
+/** Longest the typo-correction vocabulary can lag behind a catalogue change. */
+const VOCAB_TTL = 600;
 
 /**
  * PostgreSQL search:
@@ -43,8 +45,8 @@ const FUZZY_MIN_WORD_SIMILARITY = 0.45;
  * 2. Tokens matching a brand name become a brand constraint ("aurora earbuds").
  * 3. Weighted full-text search with prefix matching over name (A), tags (B),
  *    short description (C) and highlights (D), using the GIN expression index.
- * 4. No hits → correct each unknown token against the live catalogue vocabulary
- *    (trigram similarity) and retry: "earbds" → "earbuds".
+ * 4. No hits → correct each unknown token against the catalogue vocabulary (a
+ *    materialised view, trigram-indexed) and retry: "earbds" → "earbuds".
  * 5. Still nothing → trigram word similarity on product names.
  * Ranking blends text rank, a name-prefix boost, popularity and availability.
  */
@@ -139,22 +141,21 @@ export class SearchService implements SearchEngine {
     tokens: string[],
   ): Promise<{ corrected: string[] | null; unknown: boolean }> {
     if (!tokens.length) return { corrected: null, unknown: false };
+    await this.ensureVocabulary();
+    // Nearest words by trigram distance (GiST KNN), then the exact best by similarity
+    // with an alphabetical tie-break, so results are deterministic.
     const rows = await this.prisma.$queryRaw<
       { tok: string; best: string | null; sim: number | null; known: boolean }[]
     >`
-      WITH vocab AS (
-        SELECT DISTINCT w FROM (
-          SELECT unnest(regexp_split_to_array(lower(p."name" || ' ' || array_to_string(p."tags", ' ')), '[^a-z0-9]+')) AS w
-          FROM "products" p WHERE p."status" = 'ACTIVE'
-          UNION ALL SELECT unnest(regexp_split_to_array(lower(b."name"), '[^a-z0-9]+')) FROM "brands" b WHERE b."is_active"
-          UNION ALL SELECT unnest(regexp_split_to_array(lower(c."name"), '[^a-z0-9]+')) FROM "categories" c WHERE c."is_active"
-        ) words WHERE length(w) > 2
-      )
-      SELECT t.tok,
-             (SELECT w FROM vocab ORDER BY similarity(w, t.tok) DESC, w LIMIT 1) AS best,
-             (SELECT max(similarity(w, t.tok)) FROM vocab) AS sim,
-             EXISTS (SELECT 1 FROM vocab WHERE w LIKE t.tok || '%') AS known
-      FROM unnest(${tokens}::text[]) AS t(tok)`;
+      SELECT t.tok, b.w AS best, b.sim,
+             EXISTS (SELECT 1 FROM "search_vocab" v WHERE v.w LIKE t.tok || '%') AS known
+      FROM unnest(${tokens}::text[]) AS t(tok)
+      LEFT JOIN LATERAL (
+        SELECT c.w, similarity(c.w, t.tok) AS sim
+        FROM (SELECT w FROM "search_vocab" ORDER BY w <-> t.tok LIMIT 5) c
+        ORDER BY similarity(c.w, t.tok) DESC, c.w
+        LIMIT 1
+      ) b ON true`;
     let changed = false;
     const unknown = rows.some((r) => !r.known);
     const corrected = rows.map((r) => {
@@ -165,14 +166,37 @@ export class SearchService implements SearchEngine {
     return { corrected: changed ? corrected : null, unknown };
   }
 
+  /**
+   * The `<%` operator uses the product-name trigram index (pg_trgm folds case, so
+   * `name` and `lower(name)` score the same); its threshold is set for this
+   * transaction only.
+   */
   private async fuzzy(normalized: string, categoryIds: string[]): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT p."id" FROM "products" p
-      WHERE p."status" = 'ACTIVE' AND p."category_id" = ANY(${categoryIds})
-        AND word_similarity(${normalized}, lower(p."name")) >= ${FUZZY_MIN_WORD_SIMILARITY}
-      ORDER BY word_similarity(${normalized}, lower(p."name")) DESC, p."sold_count" DESC, p."id"
-      LIMIT 50`;
+    const rows = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('pg_trgm.word_similarity_threshold', ${String(FUZZY_MIN_WORD_SIMILARITY)}, true)`;
+      return tx.$queryRaw<{ id: string }[]>`
+        SELECT p."id" FROM "products" p
+        WHERE p."status" = 'ACTIVE' AND p."category_id" = ANY(${categoryIds})
+          AND ${normalized} <% p."name"
+        ORDER BY word_similarity(${normalized}, p."name") DESC, p."sold_count" DESC, p."id"
+        LIMIT 50`;
+    });
     return rows.map((r) => r.id);
+  }
+
+  /**
+   * Refreshes the typo-correction vocabulary (materialised view `search_vocab`) when the
+   * catalogue has changed. The marker lives under the catalogue cache prefix, so every
+   * catalogue edit clears it, and it expires anyway after VOCAB_TTL as a safety net.
+   * CONCURRENTLY: searches keep reading the old vocabulary during the refresh.
+   */
+  private ensureVocabulary(): Promise<boolean> {
+    return this.cache.wrap(`${CATALOG_CACHE_PREFIX}search-vocab`, VOCAB_TTL, async () => {
+      const started = Date.now();
+      await this.prisma.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY "search_vocab"`;
+      this.logger.log(`Search vocabulary refreshed in ${Date.now() - started} ms`);
+      return true;
+    });
   }
 
   private async run(normalized: string): Promise<SearchResult> {

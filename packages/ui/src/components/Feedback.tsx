@@ -61,9 +61,18 @@ export interface EmptyStateProps {
   /** Always offer a useful next step (e.g. "Continue shopping"). */
   action?: ReactNode;
   className?: string;
+  /** Use `h1` when the empty state is the whole page (e.g. a 404). */
+  headingLevel?: 'h1' | 'h2' | 'h3';
 }
 
-export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+  headingLevel: Heading = 'h2',
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -79,7 +88,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
           {icon}
         </div>
       )}
-      <h2 className="font-heading text-h3 text-text-primary">{title}</h2>
+      <Heading className="font-heading text-h3 text-text-primary">{title}</Heading>
       {description && <p className="text-body text-text-muted">{description}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>

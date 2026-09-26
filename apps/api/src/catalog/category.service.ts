@@ -7,6 +7,8 @@ import { PrismaService } from '../database/prisma.service';
 
 export const CATALOG_CACHE_PREFIX = 'catalog:';
 const TREE_TTL = 300;
+/** Read several times per listing request: keep it parsed in-process (see WrapOptions). */
+export const HOT_LOCAL = { localSeconds: 10 };
 
 export interface TreeIndex {
   roots: CategoryNode[];
@@ -27,13 +29,18 @@ export class CategoryService {
   ) {}
 
   async index(): Promise<TreeIndex> {
-    return this.cache.wrap(`${CATALOG_CACHE_PREFIX}tree`, TREE_TTL, async () => {
-      const rows = await this.prisma.category.findMany({
-        where: { isActive: true },
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      });
-      return buildIndex(rows);
-    });
+    return this.cache.wrap(
+      `${CATALOG_CACHE_PREFIX}tree`,
+      TREE_TTL,
+      async () => {
+        const rows = await this.prisma.category.findMany({
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        });
+        return buildIndex(rows);
+      },
+      HOT_LOCAL,
+    );
   }
 
   async tree(): Promise<CategoryNode[]> {

@@ -34,7 +34,14 @@ export async function SiteHeader() {
         </p>
       </div>
       <div className="container-page flex h-16 items-center gap-2 md:h-[4.5rem]">
-        <MobileMenu tree={tree} />
+        <MobileMenu
+          tree={tree.map((r) => ({
+            id: r.id,
+            name: r.name,
+            slug: r.slug,
+            children: r.children.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
+          }))}
+        />
         <Link href="/" className="shrink-0 rounded-sm" aria-label={`${settings.storeName} home`}>
           <Logo height={36} priority className="hidden sm:block" />
           <Logo variant="icon" height={36} priority className="sm:hidden" />

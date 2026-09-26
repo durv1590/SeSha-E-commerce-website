@@ -14,6 +14,7 @@ export function FilterPanel({
   categoryLinks,
   showApply,
   idPrefix,
+  moreBrands,
 }: {
   /** Unique per rendered copy (desktop sidebar vs mobile sheet). */
   idPrefix: string;
@@ -22,6 +23,8 @@ export function FilterPanel({
   /** Sub-category refinement links (href already built by the page). */
   categoryLinks?: { label: string; href: string; count: number }[];
   showApply?: boolean;
+  /** Present when only the top brands are listed: links to the full list. */
+  moreBrands?: { count: number; href: string };
 }) {
   const heading = 'mb-2 text-small font-semibold uppercase tracking-wide text-text-secondary';
   return (
@@ -64,6 +67,15 @@ export function FilterPanel({
               className="min-h-10 py-1"
             />
           ))}
+          {moreBrands && (
+            <Link
+              href={moreBrands.href}
+              scroll={false}
+              className="mt-1 inline-flex min-h-10 items-center text-small font-semibold"
+            >
+              Show all {moreBrands.count} brands
+            </Link>
+          )}
         </fieldset>
       )}
 

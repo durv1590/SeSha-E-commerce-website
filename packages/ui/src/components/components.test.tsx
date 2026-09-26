@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StockBadge } from './Badge';
 import { Button, buttonVariants } from './Button';
 import { DropdownMenu } from './Dropdown';
+import { EmptyState } from './Feedback';
 import { FormField, Input } from './Form';
 import { Price } from './Price';
 import { QuantityStepper } from './QuantityStepper';
@@ -172,5 +173,17 @@ describe('Button sizes', () => {
     for (const size of ['sm', 'md', 'lg'] as const) {
       expect(buttonVariants({ size })).toContain('font-semibold');
     }
+  });
+});
+
+describe('EmptyState', () => {
+  it('uses a section heading by default and a page heading when it is the whole page', () => {
+    const { unmount } = render(<EmptyState title="Your cart is empty" />);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Your cart is empty' }),
+    ).toBeInTheDocument();
+    unmount();
+    render(<EmptyState title="Page not found" headingLevel="h1" />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
   });
 });

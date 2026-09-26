@@ -4,7 +4,7 @@ import type { BrandDto } from '@seshakart/types';
 import { CacheService } from '../cache/cache.service';
 import { AppException } from '../common/filters/all-exceptions.filter';
 import { PrismaService } from '../database/prisma.service';
-import { CATALOG_CACHE_PREFIX } from './category.service';
+import { CATALOG_CACHE_PREFIX, HOT_LOCAL } from './category.service';
 
 export function toBrandDto(b: Brand): BrandDto {
   return {
@@ -37,6 +37,7 @@ export class BrandService {
         });
         return rows.map(toBrandDto);
       },
+      HOT_LOCAL,
     );
   }
 

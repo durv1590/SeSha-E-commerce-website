@@ -8,6 +8,30 @@ interface MemoryEntry {
 
 const MEMORY_MAX_ENTRIES = 5_000;
 
+export interface WrapOptions {
+  /**
+   * Also keep the parsed value in this process for up to this many seconds. For small,
+   * hot, shared values (category tree, brands, settings) read several times per request:
+   * parsing them from Redis each time dominated API CPU under load. The value is
+   * deep-frozen, because every caller shares one copy. `del`/`delByPrefix` clear it on
+   * this instance at once; other instances may serve it for up to this long.
+   */
+  localSeconds?: number;
+}
+
+interface LocalEntry {
+  value: unknown;
+  expiresAt: number;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const v of Object.values(value)) deepFreeze(v);
+  }
+  return value;
+}
+
 /**
  * JSON cache for read-heavy data (category tree, homepage, product listings).
  * Redis-backed in production; bounded in-memory fallback in development.
@@ -19,6 +43,8 @@ const MEMORY_MAX_ENTRIES = 5_000;
 export class CacheService {
   private readonly logger = new Logger('Cache');
   private readonly memory = new Map<string, MemoryEntry>();
+  /** Parsed values of `localSeconds` keys (see WrapOptions). */
+  private readonly local = new Map<string, LocalEntry>();
   /** Coalesces concurrent loads of the same key (cache-stampede protection). */
   private readonly inflight = new Map<string, Promise<unknown>>();
 
@@ -47,9 +73,28 @@ export class CacheService {
   }
 
   /** Returns the cached value, or runs `load`, caches and returns its result. */
-  async wrap<T>(key: string, ttlSeconds: number, load: () => Promise<T>): Promise<T> {
+  async wrap<T>(
+    key: string,
+    ttlSeconds: number,
+    load: () => Promise<T>,
+    opts: WrapOptions = {},
+  ): Promise<T> {
+    const localSeconds = Math.min(opts.localSeconds ?? 0, ttlSeconds);
+    if (localSeconds > 0) {
+      const entry = this.local.get(key);
+      if (entry && entry.expiresAt > Date.now()) return entry.value as T;
+    }
+    const keepLocal = (value: T): T => {
+      if (localSeconds > 0)
+        this.local.set(key, {
+          value: deepFreeze(value),
+          expiresAt: Date.now() + localSeconds * 1000,
+        });
+      return value;
+    };
+
     const hit = await this.get<T>(key);
-    if (hit !== undefined) return hit;
+    if (hit !== undefined) return keepLocal(hit);
 
     const pending = this.inflight.get(key) as Promise<T> | undefined;
     if (pending) return pending;
@@ -57,7 +102,7 @@ export class CacheService {
     const promise = load()
       .then(async (value) => {
         await this.set(key, value, ttlSeconds);
-        return value;
+        return keepLocal(value);
       })
       .finally(() => this.inflight.delete(key));
     this.inflight.set(key, promise);
@@ -65,6 +110,7 @@ export class CacheService {
   }
 
   async del(key: string): Promise<void> {
+    this.local.delete(key);
     try {
       if (this.redis.client) await this.redis.client.del(`cache:${key}`);
       else this.memory.delete(key);
@@ -75,6 +121,7 @@ export class CacheService {
 
   /** Invalidates every key starting with `prefix` (e.g. "catalog:" after an admin edit). */
   async delByPrefix(prefix: string): Promise<number> {
+    for (const key of this.local.keys()) if (key.startsWith(prefix)) this.local.delete(key);
     if (!this.redis.client) {
       let n = 0;
       for (const key of this.memory.keys())

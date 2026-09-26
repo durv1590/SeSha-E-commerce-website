@@ -1,6 +1,5 @@
 'use client';
 
-import type { CategoryNode } from '@seshakart/types';
 import { Drawer } from '@seshakart/ui';
 import { ChevronDown, Menu } from 'lucide-react';
 import Link from 'next/link';
@@ -27,8 +26,16 @@ const ACCOUNT = [
 const itemClass =
   'flex min-h-touch items-center rounded-md px-3 text-body font-medium text-text-primary no-underline hover:bg-surface-muted aria-[current=page]:bg-primary-light aria-[current=page]:text-primary-dark';
 
+/** Just what the drawer shows: it is a client component, so every field is sent to the browser. */
+export interface MenuCategory {
+  id: string;
+  name: string;
+  slug: string;
+  children: { id: string; name: string; slug: string }[];
+}
+
 /** Mobile navigation drawer: quick links, category tree (disclosure widgets), account. */
-export function MobileMenu({ tree }: { tree: CategoryNode[] }) {
+export function MobileMenu({ tree }: { tree: MenuCategory[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   useEffect(() => setOpen(false), [pathname]);

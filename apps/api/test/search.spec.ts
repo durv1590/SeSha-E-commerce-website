@@ -144,6 +144,28 @@ describe('search API (integration)', () => {
       expect(res.body.data.correctedQuery).toBe('earbuds');
     });
 
+    it('learns new catalogue words once the catalogue changes (vocabulary refresh)', async () => {
+      expect(names(await search('kettel'))).toEqual([]); // vocabulary built without it
+      const audio = await prisma.category.findUniqueOrThrow({ where: { slug: 'audio' } });
+      await prisma.product.create({
+        data: {
+          slug: 'rasoi-steel-kettle',
+          name: 'Rasoi Steel Kettle',
+          sku: 'SKU-KETTLE',
+          categoryId: audio.id,
+          status: 'ACTIVE',
+          variants: {
+            create: [{ sku: 'SKU-KETTLE-0', name: 'Default', mrp: 200_000, price: 150_000 }],
+          },
+        },
+      });
+      // Any catalogue edit clears the catalogue cache (RevalidationService.catalogChanged).
+      await app.get(CacheService).delByPrefix('catalog:');
+      const res = await search('kettel');
+      expect(names(res)).toEqual(['Rasoi Steel Kettle']);
+      expect(res.body.data.correctedQuery).toBe('kettle');
+    });
+
     it('combines search with filters and facets', async () => {
       const res = await search('earbuds', '&inStock=true');
       expect(names(res)).toEqual(['Aurora Pulse Wireless Earbuds']);

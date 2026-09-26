@@ -34,6 +34,9 @@ export interface ProductListingProps {
  * chips, responsive grid and crawlable pagination. Server-rendered; only the small
  * filter/sort controls hydrate.
  */
+/** Brands listed in the filter panel before "Show all brands". */
+const BRAND_FACET_LIMIT = 20;
+
 export async function ProductListing({
   title,
   basePath,
@@ -96,9 +99,33 @@ export async function ProductListing({
         href: categoryHref(c.value),
       }))
     : undefined;
+  // Large catalogues have hundreds of brands; the filter panel is rendered twice (sidebar
+  // and mobile sheet), so listing them all made pages several hundred KB. Show the brands
+  // with the most products (plus any selected) and render the full list on request.
+  const allFacets = result.facets as ProductFacets;
+  const showAllBrands = searchParams.brands === 'all';
+  const brandFacets =
+    showAllBrands || allFacets.brands.length <= BRAND_FACET_LIMIT
+      ? allFacets.brands
+      : [
+          ...allFacets.brands.slice(0, BRAND_FACET_LIMIT),
+          ...allFacets.brands.slice(BRAND_FACET_LIMIT).filter((b) => brands.includes(b.value)),
+        ];
+  const moreBrands =
+    brandFacets.length < allFacets.brands.length
+      ? {
+          count: allFacets.brands.length,
+          href: (() => {
+            const qs = new URLSearchParams(visible);
+            qs.set('brands', 'all');
+            return `${basePath}?${qs}`;
+          })(),
+        }
+      : undefined;
   const panel = (prefix: string, showApply: boolean) => (
     <FilterPanel
-      facets={result.facets as ProductFacets}
+      facets={{ ...allFacets, brands: brandFacets }}
+      moreBrands={moreBrands}
       selected={selected}
       categoryLinks={categoryLinks}
       showApply={showApply}
