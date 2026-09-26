@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { absoluteUrl, isIndexable, listingCanonical, pageMetadata, siteUrl } from './site';
 
-const env = (e: Record<string, string>) => e as unknown as NodeJS.ProcessEnv;
+const env = (e: Record<string, string>) => e;
 const prod = env({ NEXT_PUBLIC_SITE_URL: 'https://www.seshakart.com/' });
 
 describe('site URLs', () => {
@@ -31,6 +31,11 @@ describe('isIndexable', () => {
       ),
     ).toBe(true);
     expect(isIndexable(env({ ...prod, ALLOW_INDEXING: 'false' }))).toBe(false);
+  });
+
+  it('is never indexable when the build has no explicit site URL', () => {
+    expect(isIndexable(env({}))).toBe(false);
+    expect(isIndexable(env({ CANONICAL_HOST: 'www.seshakart.com' }))).toBe(false);
   });
 });
 

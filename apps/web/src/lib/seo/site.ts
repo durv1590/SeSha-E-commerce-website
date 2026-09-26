@@ -11,13 +11,28 @@ export const DEFAULT_OG_IMAGE = {
   alt: 'SeShaKart',
 };
 
+/**
+ * The site URL this build was made for. Written as `process.env.NEXT_PUBLIC_SITE_URL` so
+ * Next.js inlines the build-time value on the server too: reading it through a variable
+ * (`env.NEXT_PUBLIC_SITE_URL`) would look it up at runtime, where a missing value silently
+ * fell back to the production URL (and made a staging server indexable).
+ */
+const BUILD_SITE_URL: string | undefined = process.env.NEXT_PUBLIC_SITE_URL;
+
+/** Env override for tests; the app always uses the build-time value. */
+type SiteEnv = Partial<Record<'NEXT_PUBLIC_SITE_URL' | 'ALLOW_INDEXING' | 'CANONICAL_HOST', string>>;
+
+function configuredSiteUrl(env?: SiteEnv): string | undefined {
+  return env ? env.NEXT_PUBLIC_SITE_URL : BUILD_SITE_URL;
+}
+
 /** Public origin without a trailing slash, e.g. "https://www.seshakart.com". */
-export function siteUrl(env: NodeJS.ProcessEnv = process.env): string {
-  return (env.NEXT_PUBLIC_SITE_URL ?? 'https://www.seshakart.com').replace(/\/+$/, '');
+export function siteUrl(env?: SiteEnv): string {
+  return (configuredSiteUrl(env) ?? 'https://www.seshakart.com').replace(/\/+$/, '');
 }
 
 /** Absolute URL for a site path ("/product/x") or an already-absolute URL (CDN images). */
-export function absoluteUrl(pathOrUrl: string, env: NodeJS.ProcessEnv = process.env): string {
+export function absoluteUrl(pathOrUrl: string, env?: SiteEnv): string {
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
   return `${siteUrl(env)}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
 }
@@ -26,17 +41,25 @@ export function absoluteUrl(pathOrUrl: string, env: NodeJS.ProcessEnv = process.
  * Whether search engines may index this deployment. Only the canonical production host
  * is indexable, so staging, preview and local builds can never leak into search results
  * even if they are publicly reachable. `ALLOW_INDEXING=false` switches production off too
- * (for example before launch).
+ * (for example before launch). A build made without NEXT_PUBLIC_SITE_URL is never indexable.
  */
-export function isIndexable(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.ALLOW_INDEXING === 'false') return false;
+export function isIndexable(env?: SiteEnv): boolean {
+  // ALLOW_INDEXING and CANONICAL_HOST are runtime settings (server only).
+  const runtime: SiteEnv = env ?? {
+    ALLOW_INDEXING: process.env.ALLOW_INDEXING,
+    CANONICAL_HOST: process.env.CANONICAL_HOST,
+  };
+  if (runtime.ALLOW_INDEXING === 'false') return false;
+  // A build without an explicit site URL is never indexable.
+  const configured = configuredSiteUrl(env);
+  if (!configured) return false;
   let url: URL;
   try {
-    url = new URL(siteUrl(env));
+    url = new URL(configured);
   } catch {
     return false;
   }
-  const canonicalHost = env.CANONICAL_HOST ?? 'www.seshakart.com';
+  const canonicalHost = runtime.CANONICAL_HOST ?? 'www.seshakart.com';
   return url.protocol === 'https:' && url.host === canonicalHost;
 }
 

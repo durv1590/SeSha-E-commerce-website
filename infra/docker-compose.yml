@@ -1,6 +1,12 @@
 # Full stack in containers (production-like). Secrets come from an env file that
 # is NOT committed:  docker compose -f infra/docker-compose.yml --env-file .env.production up -d
 name: seshakart
+
+# Rotate container logs (Docker keeps them forever by default).
+x-logging: &logging
+  driver: json-file
+  options: { max-size: '20m', max-file: '5' }
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -14,12 +20,21 @@ services:
       interval: 5s
       retries: 10
     restart: unless-stopped
+    logging: *logging
   redis:
     image: redis:7-alpine
     command: ['redis-server', '--appendonly', 'yes']
     volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
     restart: unless-stopped
+    logging: *logging
   api:
+    # Built here (`compose build`) or pulled from the registry (`compose pull`, see
+    # .github/workflows/release.yml): set SESHAKART_API_IMAGE to a released tag.
+    image: ${SESHAKART_API_IMAGE:-seshakart-api:local}
     build: { context: .., dockerfile: infra/docker/api.Dockerfile }
     env_file: ${ENV_FILE:-../.env.production}
     environment:
@@ -34,9 +49,13 @@ services:
       - media:/app/uploads
     depends_on:
       postgres: { condition: service_healthy }
-      redis: { condition: service_started }
+      redis: { condition: service_healthy }
+    # In-flight requests finish before the container stops (graceful shutdown).
+    stop_grace_period: 30s
     restart: unless-stopped
+    logging: *logging
   web:
+    image: ${SESHAKART_WEB_IMAGE:-seshakart-web:local}
     build:
       context: ..
       dockerfile: infra/docker/web.Dockerfile
@@ -48,8 +67,11 @@ services:
     env_file: ${ENV_FILE:-../.env.production}
     environment:
       API_INTERNAL_URL: http://api:4000
-    depends_on: [api]
+    depends_on:
+      api: { condition: service_healthy }
+    stop_grace_period: 30s
     restart: unless-stopped
+    logging: *logging
   # Edge proxy: /api/* → api (with the real client IP), everything else → web.
   # Put TLS / Cloudflare in front of this port.
   edge:
@@ -57,8 +79,10 @@ services:
     volumes:
       - ./nginx/seshakart.conf:/etc/nginx/conf.d/default.conf:ro
     ports: ['80:80']
-    depends_on: [api, web]
+    depends_on:
+      web: { condition: service_healthy }
     restart: unless-stopped
+    logging: *logging
 volumes:
   pgdata:
   redisdata:
