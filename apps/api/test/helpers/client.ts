@@ -33,6 +33,14 @@ export class BrowserClient {
       .set('x-csrf-token', this.csrf)
       .send(body ?? {});
   }
+  /** Sends `body` byte-for-byte as JSON (for malformed-input tests). */
+  postRaw(url: string, body: string) {
+    return this.agent
+      .post(url)
+      .set('x-csrf-token', this.csrf)
+      .set('content-type', 'application/json')
+      .send(body);
+  }
   patch(url: string, body?: object) {
     return this.agent
       .patch(url)

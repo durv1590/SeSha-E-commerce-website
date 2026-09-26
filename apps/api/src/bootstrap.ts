@@ -9,6 +9,7 @@ import { allowedOrigins, type Env } from './config/env';
 import { StorageService } from './storage/storage.service';
 
 export const API_PREFIX = 'api';
+export const JSON_BODY_LIMIT = '1mb';
 
 /**
  * Applies cross-cutting HTTP configuration. Shared by main.ts and the integration
@@ -18,6 +19,10 @@ export function configureApp(app: INestApplication, env: Env): void {
   const express = app as NestExpressApplication;
   express.disable('x-powered-by');
   if (env.TRUST_PROXY_HOPS > 0) express.set('trust proxy', env.TRUST_PROXY_HOPS);
+
+  // The largest legitimate bodies (a full product, a 50,000-character CMS page in an
+  // Indian script) are a few hundred KB; Express's 100 KB default rejected them.
+  express.useBodyParser('json', { limit: JSON_BODY_LIMIT });
 
   app.use(requestId);
   // The API only serves JSON, so it can use a very strict CSP.

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { colors } from '@seshakart/ui/tokens';
 import { inter, interRupee, montserrat, montserratRupee } from './fonts';
@@ -35,7 +36,10 @@ export const viewport: Viewport = {
   themeColor: colors.navy,
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Every page is rendered per request: the script nonce in the Content-Security-Policy
+  // (src/middleware.ts) is new each time, and a prerendered page would carry none.
+  await connection();
   return (
     <html
       lang="en-IN"

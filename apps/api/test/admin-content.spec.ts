@@ -197,6 +197,27 @@ describe('content and settings admin (integration)', () => {
       ).toBe('SLUG_TAKEN');
       await admin.delete(`/api/admin/pages/${second.id}`).expect(204);
     });
+
+    it('accepts a full-length page in an Indian script (above the 100 KB default body limit)', async () => {
+      // 50,000 Devanagari characters are 150 KB of UTF-8.
+      const content = 'स'.repeat(50_000);
+      const page = (
+        await admin.post('/api/admin/pages', { title: 'Hindi policy', content }).expect(201)
+      ).body.data;
+      expect(page.content).toHaveLength(50_000);
+      await admin
+        .post('/api/admin/pages', { title: 'Too long', content: 'स'.repeat(50_001) })
+        .expect(422);
+    });
+
+    it('answers oversized and malformed bodies with 413 and 400, not a server error', async () => {
+      const big = await admin
+        .post('/api/admin/pages', { title: 'Huge', content: 'x'.repeat(1_100_000) })
+        .expect(413);
+      expect(big.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+      const bad = await admin.postRaw('/api/admin/pages', '{"title": ').expect(400);
+      expect(bad.body.error.code).toBe('BAD_REQUEST'); // Nest's own parse-error handling
+    });
   });
 
   describe('SEO overrides', () => {

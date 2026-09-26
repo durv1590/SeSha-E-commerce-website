@@ -79,6 +79,28 @@ export function mapDatabaseError(
 }
 
 /**
+ * Errors raised by the body parser before a route runs (http-errors objects with a
+ * `type` such as "entity.too.large"): client mistakes, never server faults.
+ */
+function mapBodyParserError(
+  err: unknown,
+): { status: HttpStatus; code: string; message: string } | null {
+  const e = err as { type?: unknown; status?: unknown } | null;
+  if (!e || typeof e.type !== 'string' || typeof e.status !== 'number' || e.status >= 500)
+    return null;
+  switch (e.type) {
+    case 'entity.too.large':
+      return {
+        status: HttpStatus.PAYLOAD_TOO_LARGE,
+        code: 'PAYLOAD_TOO_LARGE',
+        message: 'The request is too large.',
+      };
+    default:
+      return { status: e.status, code: 'BAD_REQUEST', message: 'The request couldn’t be read.' };
+  }
+}
+
+/**
  * Converts every error into the standard error envelope. Unexpected errors are
  * logged server-side with the request id; the client only ever receives a generic
  * message — never stack traces, SQL, file paths or configuration.
@@ -99,7 +121,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message: 'Something went wrong on our side. Please try again.',
     };
 
-    const dbError = mapDatabaseError(exception);
+    const dbError = mapDatabaseError(exception) ?? mapBodyParserError(exception);
     if (dbError) {
       status = dbError.status;
       body = { code: dbError.code, message: dbError.message };

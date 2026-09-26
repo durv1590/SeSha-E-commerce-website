@@ -1,12 +1,12 @@
 /**
- * HTTP security headers for every storefront response.
+ * HTTP security headers for the storefront.
  *
- * CSP note: Next.js injects inline bootstrap scripts, so `script-src` needs
- * 'unsafe-inline' unless every page is rendered with a per-request nonce (which
- * disables static rendering and CDN caching). We accept that trade-off and keep
- * every other directive strict. Analytics origins are added only for the tools that
- * are configured (and the tags themselves load only after cookie consent).
- * See docs/SECURITY.md.
+ * The Content-Security-Policy is built per request by the middleware with a fresh nonce:
+ * only scripts carrying it (Next.js marks its own) and scripts they load
+ * ('strict-dynamic': Razorpay, analytics) may run, so an injected inline script or
+ * event handler is blocked. Every page is rendered per request anyway, so the nonce
+ * costs no caching. Analytics origins are added only for the tools that are configured
+ * (and the tags themselves load only after cookie consent). See docs/SECURITY.md.
  */
 
 /**
@@ -43,7 +43,17 @@ export interface HeaderOptions {
   analytics?: { ga?: boolean; meta?: boolean };
 }
 
-export function buildContentSecurityPolicy(opts: HeaderOptions): string {
+export interface PolicyOptions extends HeaderOptions {
+  /** Per-request script nonce (base64). */
+  nonce: string;
+}
+
+/** A 128-bit random nonce, base64-encoded (works in the Edge runtime). */
+export function createNonce(): string {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+}
+
+export function buildContentSecurityPolicy(opts: PolicyOptions): string {
   const tools = [
     opts.analytics?.ga && ANALYTICS_ORIGINS.ga,
     opts.analytics?.meta && ANALYTICS_ORIGINS.meta,
@@ -59,7 +69,9 @@ export function buildContentSecurityPolicy(opts: HeaderOptions): string {
   const scripts = [...PAYMENT_ORIGINS.script, ...tools.flatMap((t) => t.script)].join(' ');
   const directives: Record<string, string> = {
     'default-src': "'self'",
-    'script-src': `'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} ${scripts}`,
+    // Hosts and 'self' are ignored by browsers that understand 'strict-dynamic' and kept
+    // only as a fallback for older ones; there is no 'unsafe-inline'.
+    'script-src': `'self' 'nonce-${opts.nonce}' 'strict-dynamic'${opts.isDev ? " 'unsafe-eval'" : ''} ${scripts}`,
     'style-src': "'self' 'unsafe-inline'",
     'img-src': "'self' data: blob: https:",
     'font-src': "'self' data:",
@@ -75,9 +87,9 @@ export function buildContentSecurityPolicy(opts: HeaderOptions): string {
   return policy.join('; ');
 }
 
+/** Static headers for every response (the page CSP is added by the middleware). */
 export function securityHeaders(opts: HeaderOptions) {
   const headers = [
-    { key: 'Content-Security-Policy', value: buildContentSecurityPolicy(opts) },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

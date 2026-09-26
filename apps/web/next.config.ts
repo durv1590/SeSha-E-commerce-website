@@ -40,13 +40,8 @@ const nextConfig: NextConfig = {
     imageSizes: [48, 96, 160, 240, 320],
   },
   async headers() {
-    const analytics = {
-      ga: /^G-[A-Z0-9]{4,20}$/.test(process.env.NEXT_PUBLIC_ANALYTICS_ID?.trim() ?? ''),
-      meta: /^\d{6,20}$/.test(process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ?? ''),
-    };
-    return [
-      { source: '/:path*', headers: securityHeaders({ isDev, https: httpsSite, analytics }) },
-    ];
+    // The page Content-Security-Policy is set per request by src/middleware.ts (nonce).
+    return [{ source: '/:path*', headers: securityHeaders({ isDev, https: httpsSite }) }];
   },
   async redirects() {
     if (isDev) return [];
