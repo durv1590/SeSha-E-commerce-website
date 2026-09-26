@@ -1,13 +1,14 @@
 import { Mail, Phone } from 'lucide-react';
 import Link from 'next/link';
+import { getPages } from '@/lib/content/api';
 import { formatPhone, getPublicSettings } from '@/lib/settings/public';
 import { Logo } from '../brand/Logo';
 
 export async function SiteFooter() {
-  const s = await getPublicSettings();
+  const [s, pages] = await Promise.all([getPublicSettings(), getPages()]);
   return (
     <footer className="mt-section bg-navy text-text-inverse">
-      <div className="container-page grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="container-page grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex flex-col gap-3 lg:col-span-2">
           <Logo tone="reversed" height={36} />
           <p className="max-w-sm text-small text-text-inverse/80">
@@ -36,6 +37,23 @@ export async function SiteFooter() {
             ))}
           </ul>
         </nav>
+        {pages.length > 0 && (
+          <nav aria-label="Help and policies">
+            <h2 className="mb-3 text-h5 text-text-inverse">Help &amp; policies</h2>
+            <ul className="flex flex-col gap-1 text-small">
+              {pages.map((p) => (
+                <li key={p.slug}>
+                  <Link
+                    href={`/pages/${p.slug}`}
+                    className="inline-flex min-h-6 items-center text-text-inverse/85 no-underline hover:text-accent hover:underline"
+                  >
+                    {p.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         <div>
           <h2 className="mb-3 text-h5 text-text-inverse">Contact us</h2>
           <ul className="flex flex-col gap-2 text-small">

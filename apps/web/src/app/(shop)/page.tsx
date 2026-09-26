@@ -1,3 +1,4 @@
+import { withSeo } from '@/lib/content/api';
 import type { Metadata } from 'next';
 import { BrandIcon, type BrandIconName } from '@/components/brand/BrandIcon';
 import { BrandCard } from '@/components/cards/BrandCard';
@@ -9,12 +10,16 @@ import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { SectionHeading } from '@/components/layout/SectionHeading';
 import { getHome } from '@/lib/catalog';
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: { absolute: 'SeShaKart — Smart Shopping, Better Living' },
   description:
     'Shop electronics, fashion, home & kitchen, beauty and more on SeShaKart. Genuine products, secure payments and fast delivery across India.',
   alternates: { canonical: '/' },
 };
+
+export function generateMetadata(): Promise<Metadata> {
+  return withSeo('/', baseMetadata);
+}
 
 // Rendered per request (never baked in at build time, when the API may be unreachable);
 // the API responses themselves are cached for 60 s, so this stays fast.

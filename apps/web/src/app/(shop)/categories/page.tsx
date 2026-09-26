@@ -1,14 +1,19 @@
+import { withSeo } from '@/lib/content/api';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { getCategoryTree } from '@/lib/catalog';
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: 'All categories',
   description: 'Browse every SeShaKart category.',
   alternates: { canonical: '/categories' },
 };
+
+export function generateMetadata(): Promise<Metadata> {
+  return withSeo('/categories', baseMetadata);
+}
 
 export default async function CategoriesPage() {
   const tree = await getCategoryTree();

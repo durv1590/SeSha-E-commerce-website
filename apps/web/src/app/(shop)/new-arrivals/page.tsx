@@ -1,13 +1,18 @@
+import { withSeo } from '@/lib/content/api';
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
 import type { RawSearchParams } from '@/lib/listing-params';
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: 'New arrivals',
   description: 'The latest products on SeShaKart.',
   alternates: { canonical: '/new-arrivals' },
 };
+
+export function generateMetadata(): Promise<Metadata> {
+  return withSeo('/new-arrivals', baseMetadata);
+}
 
 export default async function Page({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   return (

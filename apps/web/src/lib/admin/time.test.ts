@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromLocalInput, toLocalInput } from './CouponManager';
+import { fromLocalInput, toLocalInput } from './time';
 
 describe('coupon date inputs (India time)', () => {
   it('round-trips an instant through a datetime-local value', () => {

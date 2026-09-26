@@ -54,6 +54,34 @@
   }
 }
 
+/* Long-form CMS text (policies, about us) rendered from restricted Markdown. */
+@layer components {
+  .cms-content {
+    @apply max-w-[68ch] text-body text-text-primary;
+  }
+  .cms-content > * + * {
+    @apply mt-4;
+  }
+  .cms-content h2 {
+    @apply mt-8 text-h3;
+  }
+  .cms-content h3 {
+    @apply mt-6 text-h4;
+  }
+  .cms-content ul {
+    @apply list-disc pl-6;
+  }
+  .cms-content ol {
+    @apply list-decimal pl-6;
+  }
+  .cms-content li + li {
+    @apply mt-1.5;
+  }
+  .cms-content a {
+    @apply font-medium text-primary-dark underline;
+  }
+}
+
 /* Respect users who ask for less motion: keep state changes, drop movement. */
 @media (prefers-reduced-motion: reduce) {
   *,

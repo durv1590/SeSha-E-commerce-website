@@ -1,3 +1,4 @@
+import { withSeo } from '@/lib/content/api';
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
@@ -8,11 +9,11 @@ type Props = { params: Promise<{ slug: string }>; searchParams: Promise<RawSearc
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const b = await getBrand((await params).slug);
-  return {
+  return withSeo(`/brand/${b.slug}`, {
     title: b.metaTitle ?? `${b.name} products`,
     description: b.metaDescription ?? b.description ?? `Shop ${b.name} on SeShaKart.`,
     alternates: { canonical: `/brand/${b.slug}` },
-  };
+  });
 }
 
 export default async function BrandPage({ params, searchParams }: Props) {

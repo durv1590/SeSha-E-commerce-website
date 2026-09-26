@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api/browser';
 import { paiseToRupees, rupeesToPaise } from '@/lib/admin/money';
+import { fromLocalInput, toLocalInput } from '@/lib/admin/time';
 import { AdminTable, td, th } from '../AdminTable';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { FormDialog } from '../FormDialog';
@@ -33,16 +34,6 @@ const STATE: Record<
   exhausted: { label: 'Used up', badge: 'warning' },
   inactive: { label: 'Off', badge: 'neutral' },
 };
-
-/** ISO instant ↔ the India-time value of a datetime-local input. */
-export const toLocalInput = (iso: string | null) =>
-  iso
-    ? new Date(iso)
-        .toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata', hour12: false })
-        .replace(' ', 'T')
-        .slice(0, 16)
-    : '';
-export const fromLocalInput = (v: string) => (v ? `${v}:00+05:30` : null);
 
 interface Draft {
   code: string;

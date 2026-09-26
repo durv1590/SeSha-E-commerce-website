@@ -1,3 +1,4 @@
+import { withSeo } from '@/lib/content/api';
 import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductRail } from '@/components/catalog/ProductRail';
@@ -9,7 +10,7 @@ type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ varian
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProduct((await params).slug);
   const image = p.images[0];
-  return {
+  return withSeo(`/product/${p.slug}`, {
     title: p.metaTitle ?? p.name,
     description: p.metaDescription ?? p.shortDescription,
     alternates: { canonical: `/product/${p.slug}` },
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? [{ url: image.url, width: image.width, height: image.height, alt: image.alt }]
         : undefined,
     },
-  };
+  });
 }
 
 export default async function ProductPage({ params, searchParams }: Props) {

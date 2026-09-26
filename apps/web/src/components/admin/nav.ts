@@ -53,6 +53,31 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
     ],
   },
+  {
+    label: 'Content',
+    items: [
+      {
+        href: '/admin/content/banners',
+        label: 'Banners',
+        icon: 'content',
+        permission: 'content:write',
+      },
+      { href: '/admin/content/home', label: 'Homepage', icon: 'home', permission: 'content:write' },
+      { href: '/admin/content/pages', label: 'Pages', icon: 'pages', permission: 'content:write' },
+      { href: '/admin/seo', label: 'SEO', icon: 'seo', permission: 'seo:write' },
+    ],
+  },
+  {
+    label: 'Store',
+    items: [
+      {
+        href: '/admin/settings',
+        label: 'Settings',
+        icon: 'settings',
+        permission: 'settings:write',
+      },
+    ],
+  },
 ];
 
 export function navFor(permissions: readonly Permission[]): AdminNavGroup[] {
