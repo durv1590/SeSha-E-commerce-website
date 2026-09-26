@@ -64,11 +64,14 @@ export async function apiRequest<T>(
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        // FormData sets its own multipart Content-Type (with the boundary).
+        ...(body !== undefined && !(body instanceof FormData)
+          ? { 'Content-Type': 'application/json' }
+          : {}),
         ...(method !== 'GET' ? { 'x-csrf-token': await csrfToken() } : {}),
         ...extraHeaders,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
 
   let res: Response;
@@ -99,5 +102,12 @@ export const api = {
   post: <T>(path: string, body?: unknown) =>
     apiRequest<T>('POST', path, body ?? {}).then((r) => r.data),
   patch: <T>(path: string, body: unknown) => apiRequest<T>('PATCH', path, body).then((r) => r.data),
+  put: <T>(path: string, body: unknown) => apiRequest<T>('PUT', path, body).then((r) => r.data),
+  /** multipart/form-data upload of one file in the `file` field. */
+  upload: <T>(path: string, file: File | Blob, filename?: string) => {
+    const form = new FormData();
+    form.append('file', file, filename ?? (file instanceof File ? file.name : 'upload'));
+    return apiRequest<T>('POST', path, form).then((r) => r.data);
+  },
   delete: <T = void>(path: string) => apiRequest<T>('DELETE', path).then((r) => r.data),
 };
