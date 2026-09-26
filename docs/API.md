@@ -12,6 +12,8 @@ through the edge proxy. The same API serves the web app today and native apps la
 - **Money** is an integer in paise. **Timestamps** are ISO-8601 in UTC.
 - **Validation** failures return `422 VALIDATION_FAILED` with field `details`. Unknown fields are
   ignored.
+- **Bodies:** JSON up to 1 MB. Larger bodies get `413 PAYLOAD_TOO_LARGE`; malformed JSON gets
+  `400 BAD_REQUEST`. Image uploads (multipart) are limited to 8 MB.
 - **Pagination:** `?page=1&pageSize=24` (maximum 100).
 - **Rate limits:** `429 RATE_LIMITED` responses include `Retry-After`. The global default is
   300/min per IP. Stricter per-route limits are listed below.

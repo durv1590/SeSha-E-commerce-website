@@ -98,6 +98,12 @@
 | 61  | **Filters canonicalise to the listing; pages keep their number**                                                                                                                | Faceted URLs don't compete with the listing, while products on page 2+ stay discoverable.                                                                                                                                                    |
 | 62  | **Analytics load only after opt-in consent, per purpose**                                                                                                                       | DPDP Act 2023 practice: no tracker or cookie before a free, specific choice; reject is as easy as accept; withdrawal removes the tools' cookies.                                                                                             |
 | 63  | **Events are built from product data, never personal data; URLs are cleaned**                                                                                                   | GA4 and Meta get slugs, amounts and cleaned page addresses only, so a token or order number in a URL can't leak to a third party.                                                                                                            |
+| 64  | **Per-request nonce CSP with 'strict-dynamic', no 'unsafe-inline' scripts**                                                                                                     | Every page already rendered per request, so a nonce costs no caching; injected inline scripts and handlers are refused while Next.js, Razorpay and consented analytics keep working.                                                         |
+| 65  | **Explicit 1 MB JSON limit; body-parser errors are 4xx**                                                                                                                        | The 100 KB default rejected legitimate content (a CMS page in an Indian script) and surfaced as a 500.                                                                                                                                       |
+| 66  | **Typo vocabulary as a materialised view, refreshed lazily after catalogue changes**                                                                                            | Search cost no longer grows with the catalogue; a refresh marker under the catalogue cache prefix ties freshness to the existing invalidation.                                                                                               |
+| 67  | **Optional in-process cache layer for small hot values (≤ 10 s, deep-frozen)**                                                                                                  | Parsing the category tree from Redis several times per request dominated API CPU; the bounded lag across instances is acceptable for taxonomy and settings.                                                                                  |
+| 68  | **Performance decisions are measured on a synthetic 30k-product database**                                                                                                      | The demo catalogue hides scaling problems; the seed and load scripts live in tools/perf so results can be reproduced before launch.                                                                                                          |
+| 69  | **Root 404 page kept light**                                                                                                                                                    | Next.js embeds the root not-found boundary in every page's payload; the full header there doubled the category tree on every page.                                                                                                           |
 
 ## Request lifecycle (API)
 
@@ -430,3 +436,56 @@ Delivered in five milestones, each tested, browser-checked and committed separat
     schema limits them to uploads or https (tested).
   - Read-only staff were told "Nothing to do" on orders that did have actions for other roles.
   - The storefront account menu had no link to the admin for staff (added, with Reviews).
+
+### Phase 11: SEO and analytics ✅
+
+- **11A Sitemap and robots:** `GET /api/sitemap` feed; `/sitemap.xml` (static listings, live
+  products with images, non-empty categories and brands, published pages, minus admin-hidden
+  paths) and `/robots.txt`; non-canonical hosts are closed to crawlers.
+- **11B Metadata and structured data:** one `pageMetadata()` helper gives every indexable page a
+  canonical URL (paginated listings keep their page) and a complete Open Graph block with a
+  default share image; X large-image card. JSON-LD: `OnlineStore` and `WebSite` search box on the
+  home page, `Product` (offers in INR, availability, return policy, rating, reviews) and
+  `BreadcrumbList` on product, category and CMS pages, safely escaped.
+- **11C Analytics:** consent banner and footer "Cookie settings"; GA4 and Meta Pixel loaded only
+  for the purposes accepted; page views on every client navigation with cleaned addresses;
+  `view_item`, `add_to_cart`, `begin_checkout`, `purchase` (once per order), `search`,
+  `sign_up`, `login`; CSP origins only for configured tools; Docker build arguments for the IDs.
+  Guide: [SEO_ANALYTICS.md](SEO_ANALYTICS.md).
+- **Tests:** API +1 (sitemap visibility), web +26. Browser QA with stubbed tag endpoints:
+  nothing loads before consent; reject, choose, accept and withdraw flows; events on a real COD
+  order; no email or token in any payload; banner axe-clean at 1280 and 360 px.
+- **Bugs found and fixed:** events fired while a page hydrated were dropped (now queued until
+  consent is known); white-on-blue hero and offer text at 90 % opacity failed AA contrast.
+
+### Phase 12: performance and security ✅
+
+- **12A Security:** every `pnpm audit` advisory fixed (nodemailer 7 → 10, sharp 0.34 → 0.35.4,
+  Vitest 3 → 4, overrides for postcss, sharp via Next.js and deepmerge-ts via Prisma);
+  per-request nonce CSP without `'unsafe-inline'` scripts, browser-tested across storefront,
+  checkout, consented analytics and admin with zero violations; explicit JSON body limit with
+  4xx errors; `security.txt`; nginx `server_tokens off` and gzip.
+- **12B Performance:** measured on a synthetic 30k-product / 100k-order database
+  ([PERFORMANCE.md](PERFORMANCE.md), [tools/perf](../tools/perf/README.md)). Uncached mixed
+  traffic 64 → 216 req/s per API process (p50 637 → 161 ms): materialised typo vocabulary,
+  indexed fuzzy fallback, in-process cache layer for hot values (41 % of CPU was JSON parsing),
+  covering facet index. Pages 20–45 % smaller (root 404 no longer duplicated the header in
+  every page, slimmer mobile menu props, capped desktop sub-menus and brand filters). Mobile
+  LCP 0.8–1.1 s and CLS ≈ 0 under a slow-4G / 4× CPU profile.
+- **Tests:** API 288 (+5: body limits, vocabulary refresh, two cache-layer cases, also
+  run against real Redis), web 61, UI 48, validation 41. `db:check` confirms schema and migrations agree.
+- **Bugs found and fixed:**
+  - A 50,000-character CMS page in an Indian script (~150 KB) was rejected by the 100 KB default
+    body limit, and oversized bodies returned **500** instead of 413.
+  - `pnpm db:check` silently ran without a shadow database: the shell expanded
+    `$SHADOW_DATABASE_URL` before Node loaded `.env`.
+  - sharp 0.35 no longer exposes its type namespace to ESM consumers (build break on upgrade).
+  - The Phase 11 entry of this log had not been written (added above).
+- **Known issues, for Phase 13:**
+  - A `notFound()` raised inside a page (for example an unknown product) is rendered by the
+    browser from the page payload (`<html id="__next_error__">`), not in the server HTML. The
+    status is a correct 404 and the page works with JavaScript; unknown URLs outside any page
+    are fully server-rendered. This predates Phase 12 and needs a closer look at the Next.js
+    not-found flow.
+  - Home-page Total Blocking Time (~700 ms on the throttled phone profile) is mostly framework
+    and card hydration; see PERFORMANCE.md.

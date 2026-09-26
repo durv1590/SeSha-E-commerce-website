@@ -82,6 +82,8 @@ pnpm dev                      # web on :3000, API on :4000
 - [API](docs/API.md) is the REST reference and client conventions.
 - [Security](docs/SECURITY.md) covers authentication, sessions, RBAC, CSRF, admin and deployment assumptions.
 - [Admin guide](docs/ADMIN_GUIDE.md) explains running the store from the admin, for staff.
+- [Performance](docs/PERFORMANCE.md): load-test results, what was optimised, scaling notes
+  ([tools/perf](tools/perf/README.md) reproduces the measurements).
 - [SEO and analytics](docs/SEO_ANALYTICS.md): indexing, sitemap, structured data, consent and
   analytics setup (GA4, Meta Pixel).
 - [Brand design system](docs/BRAND_DESIGN_SYSTEM.md) covers the logo, colour, type, components and accessibility rules.
@@ -106,8 +108,8 @@ These docs arrive in the phases that introduce the matching features: `DEPLOYMEN
 | 9     | Orders & shipping                    | ✅ Done |
 | 10    | Admin dashboard                      | ✅ Done |
 | 11    | SEO & analytics                      | ✅ Done |
-| 12    | Performance & security               | Next    |
-| 13    | Testing (E2E)                        |         |
+| 12    | Performance & security               | ✅ Done |
+| 13    | Testing (E2E)                        | Next    |
 | 14    | Production deployment preparation    |         |
 
 ## Contact

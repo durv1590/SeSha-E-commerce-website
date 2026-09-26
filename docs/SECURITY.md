@@ -77,6 +77,9 @@ app header (tested). Payment and logistics webhooks (Phase 8) use signature veri
   internal fields are never serialised.
 - Errors: stack traces, SQL, file paths and constraint names never reach clients. Unexpected
   errors are logged server-side with a request id (tested).
+- JSON bodies are limited to 1 MB (`JSON_BODY_LIMIT`); larger ones get `413 PAYLOAD_TOO_LARGE`
+  and malformed ones `400`, never a server error (tested). Image uploads have their own 8 MB
+  limit; nginx accepts up to 12 MB.
 - Search text is reduced to `[a-z0-9]` words before it reaches `to_tsquery`, and every SQL value
   is a bound parameter (`Prisma.sql`), so tsquery syntax and SQL in a query are plain text
   (tested). Queries are capped at 100 characters and suggestions at 120 requests/min/IP.
@@ -122,16 +125,21 @@ private, no-store`.
 - **API:** Helmet with `default-src 'none'`, `frame-ancestors 'none'`, `nosniff` and a
   same-site CORP. `X-Powered-By` is removed.
 - **Web:**
-  - CSP: `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`,
-    `form-action 'self'`. The only third-party origins are Razorpay Checkout's: its script
+  - CSP, built per request in the middleware: `script-src 'self' 'nonce-…' 'strict-dynamic'`
+    with a fresh 128-bit nonce and **no `'unsafe-inline'`**, so an injected inline script or
+    event handler never runs (browser-tested). Next.js marks its own scripts with the nonce;
+    Razorpay and the consented analytics tags are loaded by those scripts ('strict-dynamic').
+    Every page renders per request (the root layout opts in), so no page can be served without
+    a nonce. `style-src` still allows inline styles. Also `default-src 'self'`,
+    `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`. The only third-party origins are Razorpay Checkout's: its script
     (`checkout.razorpay.com`), its payment frame and the endpoints it calls (tested), plus
     Google Analytics' and the Meta Pixel's script and collection origins **only when** their
     IDs are configured (tested). Their tags load only after cookie consent.
   - `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and COOP.
   - HSTS (2 years, preload) and `upgrade-insecure-requests` whenever the site URL is https.
-- **Known trade-off:** `script-src 'unsafe-inline'` is required by Next.js inline bootstrap
-  scripts unless every page uses per-request nonces, which disables static rendering and CDN
-  caching. It will be revisited in Phase 12.
+- **Edge (nginx):** `server_tokens off`; gzip for text responses.
+- `/.well-known/security.txt` (RFC 9116) names the store's support contact for vulnerability
+  reports; its expiry rolls forward automatically.
 
 ## Privacy and analytics
 
@@ -146,6 +154,14 @@ private, no-store`.
 - Non-production hosts are closed to search engines (robots.txt and `noindex`).
 
 See [SEO_ANALYTICS.md](SEO_ANALYTICS.md).
+
+## Dependencies
+
+- `pnpm audit` (production and development dependencies) reports no known vulnerabilities as
+  of Phase 12. Transitive fixes that parent packages haven't shipped yet are pinned with
+  `overrides` in `pnpm-workspace.yaml` (postcss and sharp via Next.js, deepmerge-ts via
+  Prisma); remove each once its parent includes the fix.
+- Run `pnpm audit` before every release and after dependency updates.
 
 ## Network and deployment assumptions
 
