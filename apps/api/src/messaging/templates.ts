@@ -61,3 +61,51 @@ export function passwordChangedEmail(name: string) {
   );
   return { subject, text, html };
 }
+
+export interface OrderEmailData {
+  name: string;
+  orderNumber: string;
+  paymentMethod: 'PREPAID' | 'COD';
+  total: number;
+  items: { name: string; variantName: string; quantity: number; lineTotal: number }[];
+  address: string;
+  orderUrl: string;
+}
+
+const rupees = (paise: number) =>
+  `₹${(paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+export function orderConfirmedEmail(o: OrderEmailData) {
+  const subject = `Order ${o.orderNumber} confirmed`;
+  const pay =
+    o.paymentMethod === 'COD'
+      ? `Please keep ${rupees(o.total)} ready to pay on delivery (cash or UPI).`
+      : `We’ve received your payment of ${rupees(o.total)}.`;
+  const lines = o.items
+    .map(
+      (i) =>
+        `${i.quantity} × ${i.name}${i.variantName ? ` (${i.variantName})` : ''} — ${rupees(i.lineTotal)}`,
+    )
+    .join('\n');
+  const text = `Hi ${o.name}, thank you for shopping with SeShaKart! Your order ${o.orderNumber} is confirmed.\n\n${lines}\n\nTotal: ${rupees(o.total)}\n${pay}\n\nDelivering to: ${o.address}\n\nView your order: ${o.orderUrl}`;
+  const rows = o.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 0;font-size:14px">${i.quantity} × ${escapeHtml(i.name)}${
+          i.variantName
+            ? ` <span style="color:${colors.muted}">(${escapeHtml(i.variantName)})</span>`
+            : ''
+        }</td><td align="right" style="padding:6px 0;font-size:14px">${rupees(i.lineTotal)}</td></tr>`,
+    )
+    .join('');
+  const html = emailLayout(
+    subject,
+    `<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ${escapeHtml(o.name)}, thank you for shopping with SeShaKart! Your order <strong>${escapeHtml(o.orderNumber)}</strong> is confirmed.</p>
+<table role="presentation" width="100%" style="border-top:1px solid ${colors.border};border-bottom:1px solid ${colors.border};margin:0 0 12px">${rows}
+<tr><td style="padding:8px 0;font-weight:bold">Total</td><td align="right" style="padding:8px 0;font-weight:bold">${rupees(o.total)}</td></tr></table>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.5">${escapeHtml(pay)}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.5"><strong>Delivering to:</strong> ${escapeHtml(o.address)}</p>
+<p style="margin:0"><a href="${escapeHtml(o.orderUrl)}" style="display:inline-block;background:${colors.primary};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold">View your order</a></p>`,
+  );
+  return { subject, text, html };
+}

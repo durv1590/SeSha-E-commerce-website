@@ -15,7 +15,7 @@ export async function createTestApp(
       imports: [AppModule],
       controllers: opts.controllers ?? [],
     }).compile();
-    const app = moduleRef.createNestApplication({ logger: false });
+    const app = moduleRef.createNestApplication({ logger: false, rawBody: true });
     configureApp(app, loadEnv({ ...process.env, APP_URL: 'https://www.seshakart.com' }));
     await app.init();
     return app;

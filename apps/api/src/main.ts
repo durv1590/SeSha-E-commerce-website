@@ -15,6 +15,8 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 async function bootstrap(): Promise<void> {
   const env = loadEnv();
   const app = await NestFactory.create(AppModule, {
+    // Payment webhooks are verified against the exact bytes received.
+    rawBody: true,
     logger: ['error', 'warn', 'log', 'debug', 'verbose'].slice(
       0,
       ['error', 'warn', 'log', 'debug', 'verbose'].indexOf(env.LOG_LEVEL) + 1,

@@ -68,6 +68,17 @@ const envSchema = z
     MEDIA_LOCAL_DIR: z.string().default('uploads'),
     /** Public URL prefix for media, e.g. https://cdn.seshakart.com (CDN) or /api/media (default). */
     MEDIA_PUBLIC_BASE: z.string().default('/api/media'),
+
+    /**
+     * Payment gateway. "mock" simulates payments for development and tests (never
+     * allowed in production). Secrets stay server-side; only the key id is public.
+     */
+    PAYMENT_PROVIDER: z.enum(['razorpay', 'mock']).default('mock'),
+    PAYMENT_KEY_ID: z.string().optional(),
+    PAYMENT_KEY_SECRET: z.string().optional(),
+    PAYMENT_WEBHOOK_SECRET: z.string().optional(),
+    /** Override for the gateway API base URL (tests / sandboxes). */
+    PAYMENT_API_BASE: z.string().url().optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -84,6 +95,19 @@ const envSchema = z
       'console', 'cannot be "console" in production (codes would only be logged)');
     require('JWT_SECRET', env.JWT_SECRET !== env.SESSION_SECRET, 'must differ from SESSION_SECRET');
     require('RATE_LIMIT_ENABLED', env.RATE_LIMIT_ENABLED, 'cannot be disabled in production');
+    require('PAYMENT_PROVIDER', env.PAYMENT_PROVIDER !== 'mock', 'cannot be "mock" in production');
+  })
+  .superRefine((env, ctx) => {
+    // A real gateway needs all three credentials, whatever the environment.
+    if (env.PAYMENT_PROVIDER === 'mock') return;
+    for (const key of ['PAYMENT_KEY_ID', 'PAYMENT_KEY_SECRET', 'PAYMENT_WEBHOOK_SECRET'] as const) {
+      if (!env[key])
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `is required for ${env.PAYMENT_PROVIDER}`,
+        });
+    }
   });
 
 export type Env = z.infer<typeof envSchema>;

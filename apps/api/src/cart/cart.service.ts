@@ -34,6 +34,14 @@ export interface CartOwner {
   guestToken: string | null;
 }
 
+export interface CartSnapshot {
+  dto: CartDto;
+  /** Keyed by cart item id: coupon share and GST included, for order lines. */
+  perLine: Map<string, { discount: number; tax: number }>;
+  couponId: string | null;
+  taxRates: Map<string, number>;
+}
+
 const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const lineInclude = {
@@ -178,6 +186,24 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async build(cart: CartWithLines | null, userId: string | null): Promise<CartDto> {
+    return (await this.price(cart, userId)).dto;
+  }
+
+  /**
+   * The cart as checkout needs it: the DTO plus each purchasable line's share of the
+   * coupon and its included GST, and the applied coupon's id (null if none applies).
+   */
+  async snapshot(owner: CartOwner): Promise<CartSnapshot> {
+    return this.price(await this.find(owner), owner.userId);
+  }
+
+  /** After an order is placed: the bought lines and the coupon leave the cart. */
+  async clearPurchased(cartId: string, tx: Prisma.TransactionClient): Promise<void> {
+    await tx.cartItem.deleteMany({ where: { cartId, savedForLater: false } });
+    await tx.cart.update({ where: { id: cartId }, data: { couponCode: null } });
+  }
+
+  private async price(cart: CartWithLines | null, userId: string | null): Promise<CartSnapshot> {
     const [commerce, idx] = await Promise.all([
       this.settings.get('commerce'),
       this.categories.index(),
@@ -191,8 +217,10 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
 
     let coupon: CartDto['coupon'] = null;
     let applied: Extract<ReturnType<typeof evaluateCoupon>, { ok: true }> | null = null;
+    let couponRow: { id: string } | null = null;
     if (cart?.couponCode) {
       const row = await this.prisma.coupon.findUnique({ where: { code: cart.couponCode } });
+      if (row) couponRow = row;
       if (!row) {
         coupon = {
           code: cart.couponCode,
@@ -216,7 +244,7 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
       freeShippingThreshold: commerce.freeShippingThreshold,
       standardShippingFee: commerce.standardShippingFee,
     });
-    return {
+    const dto: CartDto = {
       id: cart?.id ?? null,
       items: active.map((l) => l.dto),
       savedForLater: lines.filter((l) => l.dto.savedForLater).map((l) => l.dto),
@@ -235,6 +263,12 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
       },
       canCheckout: purchasable.length > 0 && purchasable.length === active.length,
       maxQuantityPerItem: maxPer,
+    };
+    return {
+      dto,
+      perLine: totals.lines,
+      couponId: applied && couponRow ? couponRow.id : null,
+      taxRates: new Map(purchasable.map((l) => [l.dto.id, l.pricing.taxRate])),
     };
   }
 

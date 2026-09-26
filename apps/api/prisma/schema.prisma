@@ -576,6 +576,8 @@ model Order {
   notes                String?
   /// Lets guests view their order; only a hash is stored.
   guestAccessTokenHash String?        @unique @map("guest_access_token_hash")
+  /// Client-supplied key that makes "place order" safe to retry (double clicks, flaky networks).
+  idempotencyKey       String?        @unique @map("idempotency_key")
   /// Stock is reserved until this time while payment is pending.
   reservationExpiresAt DateTime?      @map("reservation_expires_at")
   placedAt             DateTime       @default(now()) @map("placed_at")

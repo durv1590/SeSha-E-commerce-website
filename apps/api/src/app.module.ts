@@ -5,6 +5,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { CheckoutModule } from './checkout/checkout.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor';
 import { RedisThrottlerStorage } from './common/throttle/redis-throttler.storage';
@@ -45,6 +46,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     CatalogModule,
     CartModule,
+    CheckoutModule,
   ],
   controllers: [HealthController],
   providers: [

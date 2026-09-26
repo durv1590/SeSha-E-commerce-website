@@ -11,6 +11,10 @@ const PROD = {
   REDIS_URL: 'redis://r:6379',
   SMTP_HOST: 'smtp.example.com',
   SMS_PROVIDER: 'none',
+  PAYMENT_PROVIDER: 'razorpay',
+  PAYMENT_KEY_ID: 'rzp_live_x',
+  PAYMENT_KEY_SECRET: 'secret',
+  PAYMENT_WEBHOOK_SECRET: 'hook',
 };
 
 describe('loadEnv', () => {
@@ -35,6 +39,15 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...PROD, SMTP_HOST: undefined })).toThrow(/SMTP_HOST/);
     expect(() => loadEnv({ ...PROD, SMS_PROVIDER: 'console' })).toThrow(/SMS_PROVIDER/);
     expect(() => loadEnv({ ...PROD, SESSION_SECRET: PROD.JWT_SECRET })).toThrow(/must differ/);
+  });
+
+  it('forbids the mock payment gateway in production and requires real credentials', () => {
+    expect(() => loadEnv({ ...PROD, PAYMENT_PROVIDER: 'mock' })).toThrow(/PAYMENT_PROVIDER/);
+    expect(() => loadEnv({ ...PROD, PAYMENT_WEBHOOK_SECRET: undefined })).toThrow(
+      /PAYMENT_WEBHOOK_SECRET: is required for razorpay/,
+    );
+    expect(() => loadEnv({ ...DB, PAYMENT_PROVIDER: 'razorpay' })).toThrow(/PAYMENT_KEY_ID/);
+    expect(loadEnv({ ...DB }).PAYMENT_PROVIDER).toBe('mock');
   });
 
   it('requires strong secrets', () => {
