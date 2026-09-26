@@ -13,6 +13,9 @@ import { TaxonomyAdminService } from './catalog/taxonomy-admin.service';
 import { ContentAdminController } from './content/content-admin.controller';
 import { ContentAdminService } from './content/content-admin.service';
 import { DashboardController } from './dashboard.controller';
+import { EngagementAdminController } from './engagement/engagement-admin.controller';
+import { EngagementAdminService } from './engagement/engagement-admin.service';
+import { ReportsService } from './engagement/reports.service';
 import { CouponsAdminService } from './operations/coupons-admin.service';
 import { CustomersAdminService } from './operations/customers-admin.service';
 import {
@@ -36,6 +39,7 @@ import { DashboardService } from './dashboard.service';
     CustomersAdminController,
     CouponsAdminController,
     ContentAdminController,
+    EngagementAdminController,
   ],
   providers: [
     DashboardService,
@@ -47,6 +51,8 @@ import { DashboardService } from './dashboard.service';
     CustomersAdminService,
     CouponsAdminService,
     ContentAdminService,
+    EngagementAdminService,
+    ReportsService,
   ],
 })
 export class AdminModule {}

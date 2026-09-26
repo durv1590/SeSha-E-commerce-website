@@ -212,3 +212,42 @@ export interface SeoOverrideDto {
   ogImage: string | null;
   noindex: boolean;
 }
+
+export interface ReviewDto {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  /** First name and last initial only, e.g. "Asha R." */
+  author: string;
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+}
+
+export interface ReviewSummaryDto {
+  average: number;
+  count: number;
+  /** Count of approved reviews per star, index 0 = 1 star … index 4 = 5 stars. */
+  distribution: [number, number, number, number, number];
+}
+
+export interface MyReviewDto {
+  id: string;
+  product: { id: string; name: string; slug: string; imageUrl: string | null };
+  rating: number;
+  title: string | null;
+  body: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  moderationNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Delivered products the customer hasn't reviewed yet. */
+export interface ReviewablePurchaseDto {
+  productId: string;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+  deliveredAt: string;
+}

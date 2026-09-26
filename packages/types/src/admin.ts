@@ -409,3 +409,81 @@ export interface AdminSeoOverrideDto {
   noindex: boolean;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------- engagement
+
+export interface AdminReviewDto {
+  id: string;
+  product: { id: string; name: string; slug: string };
+  customer: { id: string; name: string; email: string | null };
+  rating: number;
+  title: string | null;
+  body: string;
+  isVerifiedPurchase: boolean;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  moderationNote: string | null;
+  moderatedBy: string | null;
+  moderatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A "needs attention" item in the admin notification bell. */
+export interface AdminAlertDto {
+  key: 'to_ship' | 'payment_pending' | 'returns' | 'manual_refunds' | 'reviews' | 'low_stock' | 'out_of_stock';
+  label: string;
+  count: number;
+  href: string;
+  tone: 'info' | 'warning';
+}
+
+export interface AuditEntryDto {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actor: { id: string; name: string; role: string } | null;
+  metadata: unknown;
+  ip: string | null;
+  createdAt: string;
+}
+
+export interface StaffMemberDto {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: import('./enums').Role;
+  status: 'ACTIVE' | 'SUSPENDED';
+  lastLoginAt: string | null;
+  createdAt: string;
+  hasPassword: boolean;
+  isSelf: boolean;
+}
+
+export interface SalesReportRowDto {
+  /** YYYY-MM-DD (day) or YYYY-MM (month), India time. */
+  period: string;
+  orders: number;
+  units: number;
+  /** Item value before coupon discounts (paise). */
+  grossSales: number;
+  discounts: number;
+  shipping: number;
+  /** GST included in sales (paise). */
+  tax: number;
+  /** Refunds processed in the period (paise). */
+  refunds: number;
+  /** Order totals minus refunds (paise). */
+  netSales: number;
+}
+
+export interface SalesReportDto {
+  from: string;
+  to: string;
+  groupBy: 'day' | 'month';
+  rows: SalesReportRowDto[];
+  totals: Omit<SalesReportRowDto, 'period'>;
+  byPayment: { method: 'PREPAID' | 'COD'; orders: number; netSales: number }[];
+  byCategory: { category: string; units: number; sales: number }[];
+}

@@ -144,3 +144,23 @@ ${o.link ? `<p style="margin:0 0 16px;font-size:14px"><a href="${escapeHtml(o.li
   );
   return { subject: o.subject, text, html };
 }
+
+/** A new staff account: the person sets their own password (we never email one). */
+export function staffInviteEmail(o: {
+  name: string;
+  role: string;
+  invitedBy: string;
+  resetUrl: string;
+  loginUrl: string;
+}) {
+  const subject = 'You’ve been added to the SeShaKart admin';
+  const text = `Hi ${o.name}, ${o.invitedBy} added you to the SeShaKart admin as ${o.role}. To get started, set your password: ${o.resetUrl} (use this email address). Then sign in at ${o.loginUrl}. If you weren't expecting this, you can ignore this email.`;
+  const html = emailLayout(
+    subject,
+    `<p style="margin:0 0 12px;font-size:15px;line-height:1.5">Hi ${escapeHtml(o.name)}, ${escapeHtml(o.invitedBy)} added you to the SeShaKart admin as <strong>${escapeHtml(o.role)}</strong>.</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.5">To get started, set your password using this email address:</p>
+<p style="margin:0 0 16px"><a href="${escapeHtml(o.resetUrl)}" style="display:inline-block;background:${colors.primary};color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px">Set your password</a></p>
+<p style="margin:0;font-size:13px;color:${colors.muted}">Then sign in at ${escapeHtml(o.loginUrl)}. Not expecting this? You can ignore this email.</p>`,
+  );
+  return { subject, text, html };
+}

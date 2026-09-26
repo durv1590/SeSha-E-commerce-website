@@ -107,7 +107,7 @@ export class DashboardService {
     };
   }
 
-  private async queues(): Promise<DashboardDto['queues']> {
+  async queues(): Promise<DashboardDto['queues']> {
     const [toShip, paymentPending, openReturns, stock, pendingReviews, pendingManualRefunds] =
       await Promise.all([
         this.prisma.order.count({

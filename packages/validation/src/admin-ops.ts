@@ -158,3 +158,52 @@ export const couponListQuerySchema = z.object({
   ...pageFields,
 });
 export type CouponListQuery = z.infer<typeof couponListQuerySchema>;
+
+// ------------------------------------------------------------- audit & staff
+
+export const auditQuerySchema = z
+  .object({
+    action: z.string().trim().max(60).optional(),
+    entityType: z.string().trim().max(40).optional(),
+    entityId: z.string().trim().max(40).optional(),
+    actorId: idSchema.optional(),
+    from: isoDay,
+    to: isoDay,
+    ...pageFields,
+  })
+  .refine((q) => !q.from || !q.to || q.from <= q.to, { path: ['to'], message: 'The end date is before the start date' });
+export type AuditQuery = z.infer<typeof auditQuerySchema>;
+
+export const STAFF_ROLES_EDITABLE = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'INVENTORY_MANAGER',
+  'CUSTOMER_SUPPORT',
+] as const;
+
+export const staffInviteSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  email: z.string().trim().toLowerCase().max(254).email('Enter a valid email address'),
+  role: z.enum(STAFF_ROLES_EDITABLE),
+});
+export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
+
+export const staffUpdateSchema = z.object({
+  role: z.enum([...STAFF_ROLES_EDITABLE, 'CUSTOMER']),
+  status: z.enum(['ACTIVE', 'SUSPENDED']),
+});
+export type StaffUpdateInput = z.infer<typeof staffUpdateSchema>;
+
+export const salesReportQuerySchema = z
+  .object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
+    groupBy: z.enum(['day', 'month']).default('day'),
+  })
+  .refine((q) => q.from <= q.to, { path: ['to'], message: 'The end date is before the start date' })
+  .refine(
+    (q) => (new Date(q.to).getTime() - new Date(q.from).getTime()) / 86_400_000 <= 731,
+    { path: ['to'], message: 'Choose at most two years' },
+  );
+export type SalesReportQuery = z.infer<typeof salesReportQuerySchema>;

@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { ContentModule } from './content/content.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
@@ -57,6 +58,7 @@ import { UsersModule } from './users/users.module';
     MediaModule,
     AdminModule,
     ContentModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   providers: [
