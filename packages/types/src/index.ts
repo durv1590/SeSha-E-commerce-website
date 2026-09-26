@@ -4,3 +4,4 @@ export * from './enums';
 export * from './geo';
 export * from './permissions';
 export * from './catalog';
+export * from './cart';

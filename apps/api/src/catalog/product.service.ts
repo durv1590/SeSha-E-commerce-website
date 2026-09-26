@@ -29,7 +29,7 @@ const BESTSELLER_MIN_SOLD = 50;
 const DEAL_MIN_DISCOUNT = 30;
 
 /** Fields needed to render a product card — kept small for listing performance. */
-const summaryInclude = {
+export const summaryInclude = {
   brand: { select: { id: true, name: true, slug: true } },
   category: { select: { id: true, name: true, slug: true } },
   images: {
@@ -49,7 +49,7 @@ const summaryInclude = {
 
 type SummaryRow = Prisma.ProductGetPayload<{ include: typeof summaryInclude }>;
 
-function stockState(available: number, threshold: number): StockState {
+export function stockState(available: number, threshold: number): StockState {
   if (available <= 0) return 'out_of_stock';
   return available <= threshold ? 'low_stock' : 'in_stock';
 }

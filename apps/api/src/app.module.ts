@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { CartModule } from './cart/cart.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor';
@@ -43,6 +44,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     CatalogModule,
+    CartModule,
   ],
   controllers: [HealthController],
   providers: [

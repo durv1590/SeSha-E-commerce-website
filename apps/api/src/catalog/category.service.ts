@@ -8,7 +8,7 @@ import { PrismaService } from '../database/prisma.service';
 export const CATALOG_CACHE_PREFIX = 'catalog:';
 const TREE_TTL = 300;
 
-interface TreeIndex {
+export interface TreeIndex {
   roots: CategoryNode[];
   /** slug → node, parentId, and the ids of the node plus all descendants. */
   bySlug: Record<string, { node: CategoryNode; parentSlug: string | null; subtreeIds: string[] }>;

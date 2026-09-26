@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Logger,
   Post,
   Query,
   Req,
@@ -32,6 +33,8 @@ import { ZodBody } from '../common/validation/zod.pipe';
 import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
+import { clearGuestToken, readGuestToken } from '../cart/cart-cookie';
+import { CartService } from '../cart/cart.service';
 import { toMeDto } from '../users/user.mapper';
 import { AuthService, OTP_SENT_MESSAGE, type LoginResult, type RequestMeta } from './auth.service';
 import { CLIENT_TYPE_HEADER, type AuthContext } from './auth.types';
@@ -55,8 +58,28 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly sessions: SessionService,
     private readonly prisma: PrismaService,
+    private readonly carts: CartService,
     @Inject(ENV) private readonly env: Env,
   ) {}
+
+  private readonly logger = new Logger('Auth');
+
+  /**
+   * A fresh sign-in: the guest cart (if any) joins the account's cart, then the
+   * session is issued. A merge failure never blocks signing in.
+   */
+  private async signedIn(req: Request, res: Response, result: LoginResult): Promise<AuthResultDto> {
+    const guestToken = readGuestToken(req);
+    if (guestToken) {
+      try {
+        await this.carts.mergeGuestCart(result.user.id, guestToken);
+        if (!isAppClient(req)) clearGuestToken(res, this.env);
+      } catch (err) {
+        this.logger.warn(`Guest cart merge failed: ${(err as Error).message}`);
+      }
+    }
+    return this.respond(req, res, result);
+  }
 
   /** Browsers: tokens as HttpOnly cookies only. Native apps: tokens in the body. */
   private respond(req: Request, res: Response, result: LoginResult): AuthResultDto {
@@ -92,7 +115,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResultDto> {
-    return this.respond(req, res, await this.auth.register(body, meta(req)));
+    return this.signedIn(req, res, await this.auth.register(body, meta(req)));
   }
 
   @Post('login')
@@ -103,7 +126,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResultDto> {
-    return this.respond(
+    return this.signedIn(
       req,
       res,
       await this.auth.loginWithPassword(body.identifier, body.password, meta(req)),
@@ -126,7 +149,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResultDto> {
-    return this.respond(
+    return this.signedIn(
       req,
       res,
       await this.auth.loginWithOtp(body.identifier, body.code, meta(req)),

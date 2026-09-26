@@ -3,6 +3,7 @@ import type { Env } from '../config/env';
 import { CLIENT_TYPE_HEADER } from './auth.types';
 import { ACCESS_COOKIE, CSRF_COOKIE, CSRF_HEADER, REFRESH_COOKIE, setCsrfCookie } from './cookies';
 import { randomToken, safeEqual } from './crypto';
+import { CART_COOKIE } from '../cart/cart-cookie';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Server-to-server callbacks authenticate with signatures instead (Phase 8). */
@@ -32,7 +33,10 @@ export function csrfProtection(env: Env) {
     if (SAFE_METHODS.has(req.method) || EXEMPT_PREFIXES.some((p) => req.path.startsWith(p)))
       return next();
 
-    const hasAuthCookies = Boolean(req.cookies?.[ACCESS_COOKIE] || req.cookies?.[REFRESH_COOKIE]);
+    // Any ambient credential (session or guest cart) means a browser: CSRF applies.
+    const hasAuthCookies = Boolean(
+      req.cookies?.[ACCESS_COOKIE] || req.cookies?.[REFRESH_COOKIE] || req.cookies?.[CART_COOKIE],
+    );
     const appClient =
       req.header('authorization')?.startsWith('Bearer ') ||
       req.header(CLIENT_TYPE_HEADER) === 'app';
