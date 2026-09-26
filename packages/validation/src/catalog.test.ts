@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { productListQuerySchema } from './catalog';
+import { effectiveSort, productListQuerySchema } from './catalog';
 
 describe('productListQuerySchema', () => {
   it('parses storefront URLs into typed filters (rupees → paise)', () => {
@@ -26,8 +26,15 @@ describe('productListQuerySchema', () => {
     });
   });
 
+  it('defaults to relevance for searches and popularity otherwise', () => {
+    expect(effectiveSort(productListQuerySchema.parse({ q: 'earbuds' }))).toBe('relevance');
+    expect(effectiveSort(productListQuerySchema.parse({}))).toBe('popular');
+    expect(effectiveSort(productListQuerySchema.parse({ sort: 'relevance' }))).toBe('popular');
+    expect(effectiveSort(productListQuerySchema.parse({ q: 'x', sort: 'price_asc' }))).toBe('price_asc');
+  });
+
   it('applies defaults and rejects unsafe values', () => {
-    expect(productListQuerySchema.parse({})).toEqual({ sort: 'popular', page: 1, pageSize: 24 });
+    expect(productListQuerySchema.parse({})).toEqual({ page: 1, pageSize: 24 });
     expect(productListQuerySchema.safeParse({ sort: 'price; DROP TABLE' }).success).toBe(false);
     expect(productListQuerySchema.safeParse({ brand: 'Bad Brand!' }).success).toBe(false);
     expect(productListQuerySchema.safeParse({ pageSize: '500' }).success).toBe(false);

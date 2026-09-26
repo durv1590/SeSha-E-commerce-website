@@ -32,7 +32,7 @@ describe('base seed (integration)', () => {
     expect(admin.passwordHash).toMatch(/^\$argon2id\$/);
     expect(await verifyPassword(admin.passwordHash!, 'Str0ng-Passw0rd')).toBe(true);
     const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
-    expect(settings.map((s) => s.key)).toEqual(['commerce', 'store']);
+    expect(settings.map((s) => s.key)).toEqual(['commerce', 'search', 'store']);
     expect(settings[0]!.value).toMatchObject({ freeShippingThreshold: 49900, codEnabled: true });
   });
 

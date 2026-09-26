@@ -140,6 +140,10 @@ export interface ProductFacets {
 export interface ProductListResult {
   items: ProductSummary[];
   facets: ProductFacets;
+  /** The search text, when this listing is a search. */
+  query: string | null;
+  /** Set when a probable typo was corrected ("Showing results for …"). */
+  correctedQuery: string | null;
 }
 
 export interface BannerDto {

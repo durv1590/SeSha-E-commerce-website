@@ -48,9 +48,21 @@ export const commerceSettingsSchema = z
   });
 export type CommerceSettings = z.infer<typeof commerceSettingsSchema>;
 
+export const searchSettingsSchema = z.object({
+  /**
+   * Admin-curated trending searches, shown until enough real search data exists
+   * (and alongside it). Never auto-generated: empty by default.
+   */
+  trending: z.array(z.string().trim().min(2).max(40)).max(10).default([]),
+  /** A query must be searched this many times before it can appear as "popular". */
+  popularMinCount: z.number().int().min(1).max(1000).default(5),
+});
+export type SearchSettings = z.infer<typeof searchSettingsSchema>;
+
 export const SETTINGS_SCHEMAS = {
   store: storeSettingsSchema,
   commerce: commerceSettingsSchema,
+  search: searchSettingsSchema,
 } as const;
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS;
 export type SettingsValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;

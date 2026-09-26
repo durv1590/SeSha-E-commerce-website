@@ -10,12 +10,13 @@ import type {
   SpecificationDto,
   StockState,
 } from '@seshakart/types';
-import type { ProductListQuery } from '@seshakart/validation';
+import { effectiveSort, type ProductListQuery, type ProductSort } from '@seshakart/validation';
 import { createHash } from 'node:crypto';
 import { CacheService } from '../cache/cache.service';
 import { AppException } from '../common/filters/all-exceptions.filter';
 import { paginated, type Envelope } from '../common/http/envelope';
 import { PrismaService } from '../database/prisma.service';
+import { SearchService } from '../search/search.service';
 import { CATALOG_CACHE_PREFIX, CategoryService } from './category.service';
 
 const LIST_TTL = 60;
@@ -85,7 +86,7 @@ export function toSummary(p: SummaryRow, now = Date.now()): ProductSummary {
   };
 }
 
-const ORDER_BY: Record<ProductListQuery['sort'], Prisma.ProductOrderByWithRelationInput[]> = {
+const ORDER_BY: Record<ProductSort, Prisma.ProductOrderByWithRelationInput[]> = {
   relevance: [{ soldCount: 'desc' }],
   popular: [{ soldCount: 'desc' }, { ratingCount: 'desc' }],
   newest: [{ publishedAt: 'desc' }],
@@ -105,6 +106,7 @@ export class ProductService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly categories: CategoryService,
+    private readonly searchEngine: SearchService,
   ) {}
 
   private cacheKey(kind: string, value: unknown): string {
@@ -116,8 +118,10 @@ export class ProductService {
   private async where(
     q: ProductListQuery,
     omit?: 'category' | 'brand' | 'price',
+    searchIds?: string[],
   ): Promise<Prisma.ProductWhereInput | null> {
     const and: Prisma.ProductWhereInput[] = [{ status: 'ACTIVE' }];
+    if (searchIds) and.push({ id: { in: searchIds } });
     const activeCategoryIds = Object.values((await this.categories.index()).bySlug).map(
       (e) => e.node.id,
     );
@@ -146,59 +150,87 @@ export class ProductService {
   }
 
   async list(q: ProductListQuery): Promise<Envelope<ProductListResult>> {
+    const sort = effectiveSort(q);
     // Cache plain data; the response envelope is rebuilt after the JSON round trip.
     const { result, total } = await this.cache.wrap(
-      this.cacheKey('list', q),
+      this.cacheKey('list', { ...q, sort }),
       LIST_TTL,
       async () => {
-        const where = await this.where(q);
+        const search = q.q ? await this.searchEngine.search(q.q) : null;
+        const where = await this.where(q, undefined, search?.ids);
         if (!where)
           throw new AppException(
             HttpStatus.NOT_FOUND,
             'NOT_FOUND',
             'This category is not available.',
           );
-        const [total, rows, facets] = await Promise.all([
-          this.prisma.product.count({ where }),
-          this.prisma.product.findMany({
-            where,
+
+        let rows: SummaryRow[];
+        let count: number;
+        if (search && sort === 'relevance') {
+          // Filter the ranked ids, keep the engine's order, paginate in memory (≤ 500 ids).
+          const matching = new Set(
+            (await this.prisma.product.findMany({ where, select: { id: true } })).map((r) => r.id),
+          );
+          const ordered = search.ids.filter((id) => matching.has(id));
+          count = ordered.length;
+          const pageIds = ordered.slice((q.page - 1) * q.pageSize, q.page * q.pageSize);
+          const found = await this.prisma.product.findMany({
+            where: { id: { in: pageIds } },
             include: summaryInclude,
-            orderBy: [...ORDER_BY[q.sort], { id: 'asc' }], // stable pagination
-            skip: (q.page - 1) * q.pageSize,
-            take: q.pageSize,
-          }),
-          this.facets(q),
-        ]);
+          });
+          const byId = new Map(found.map((r) => [r.id, r]));
+          rows = pageIds.map((id) => byId.get(id)).filter((r): r is SummaryRow => Boolean(r));
+        } else {
+          [count, rows] = await Promise.all([
+            this.prisma.product.count({ where }),
+            this.prisma.product.findMany({
+              where,
+              include: summaryInclude,
+              orderBy: [...ORDER_BY[sort], { id: 'asc' }], // stable pagination
+              skip: (q.page - 1) * q.pageSize,
+              take: q.pageSize,
+            }),
+          ]);
+        }
+        const facets = await this.facets(q, search?.ids);
         const now = Date.now();
         return {
-          result: { items: rows.map((r) => toSummary(r, now)), facets } as ProductListResult,
-          total,
+          result: {
+            items: rows.map((r) => toSummary(r, now)),
+            facets,
+            query: q.q ?? null,
+            correctedQuery: search?.correctedQuery ?? null,
+          } as ProductListResult,
+          total: count,
         };
       },
     );
+    // Anonymous search analytics: first page only, so paging doesn't inflate counts.
+    if (q.q && q.page === 1) void this.searchEngine.record(q.q, total);
     return paginated(result, total, q.page, q.pageSize);
   }
 
   /** Summaries for rails and collections (homepage sections, related products). */
   async summaries(q: Partial<ProductListQuery>, take: number): Promise<ProductSummary[]> {
-    const query = { sort: 'popular', page: 1, pageSize: take, ...q } as ProductListQuery;
+    const query = { page: 1, pageSize: take, ...q } as ProductListQuery;
     const where = await this.where(query);
     if (!where) return [];
     const rows = await this.prisma.product.findMany({
       where,
       include: summaryInclude,
-      orderBy: [...ORDER_BY[query.sort], { id: 'asc' }],
+      orderBy: [...ORDER_BY[effectiveSort(query)], { id: 'asc' }],
       take,
     });
     return rows.map((r) => toSummary(r));
   }
 
-  private async facets(q: ProductListQuery): Promise<ProductFacets> {
+  private async facets(q: ProductListQuery, searchIds?: string[]): Promise<ProductFacets> {
     const [categoryWhere, brandWhere, priceWhere, fullWhere] = await Promise.all([
-      this.where(q, 'category'),
-      this.where(q, 'brand'),
-      this.where(q, 'price'),
-      this.where(q),
+      this.where(q, 'category', searchIds),
+      this.where(q, 'brand', searchIds),
+      this.where(q, 'price', searchIds),
+      this.where(q, undefined, searchIds),
     ]);
     const idx = await this.categories.index();
 

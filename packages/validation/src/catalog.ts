@@ -49,7 +49,11 @@ const rupees = z.coerce
  * Product listing query, shared by the API and the storefront URLs, e.g.
  * /category/audio?brand=aurora-sound,voltix&min=500&max=5000&sort=price_asc&page=2
  */
+export const searchQuerySchema = z.string().trim().min(1).max(100);
+
 export const productListQuerySchema = z.object({
+  /** Free-text search; with a query the default sort becomes relevance. */
+  q: searchQuerySchema.optional(),
   category: slugSchema.optional(),
   brand: csvSlugs.optional(),
   min: rupees.optional(),
@@ -67,8 +71,16 @@ export const productListQuerySchema = z.object({
     .enum(['true', '1'])
     .transform(() => true)
     .optional(),
-  sort: z.enum(PRODUCT_SORTS).default('popular'),
+  sort: z.enum(PRODUCT_SORTS).optional(),
   page: z.coerce.number().int().min(1).max(500).default(1),
   pageSize: z.coerce.number().int().min(1).max(60).default(24),
 });
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
+
+/** Effective sort: relevance for searches, popularity otherwise. */
+export function effectiveSort(q: Pick<ProductListQuery, 'q' | 'sort'>): ProductSort {
+  if (q.sort && (q.sort !== 'relevance' || q.q)) return q.sort;
+  return q.q ? 'relevance' : 'popular';
+}
+
+export const suggestQuerySchema = z.object({ q: z.string().trim().max(100).default('') });
