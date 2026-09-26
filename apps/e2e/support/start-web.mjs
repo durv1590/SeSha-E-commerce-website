@@ -2,7 +2,7 @@
 // end-to-end run, in its own folder (.next-e2e). The browser's /api rewrite is fixed at
 // build time, so this build must point at the e2e API; the normal .next build is untouched.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
@@ -20,6 +20,10 @@ if (!(process.env.E2E_SKIP_BUILD === '1' && existsSync(join(web, distDir, 'BUILD
   });
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
+
+// Next.js keeps fetched API data on disk between runs; every run has a new database (new
+// ids), so start from an empty data cache.
+rmSync(join(web, distDir, 'cache', 'fetch-cache'), { recursive: true, force: true });
 
 const child = spawn(process.execPath, [next, 'start', '-p', process.env.PORT], {
   cwd: web,
