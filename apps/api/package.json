@@ -25,6 +25,7 @@
     "prisma:check": "node scripts/check-migrations.mjs",
     "migrate:production": "prisma migrate deploy",
     "seed:production": "node dist/database/seed.js",
+    "start:release": "prisma migrate deploy && if [ -n \"$SEED_ADMIN_EMAIL\" ]; then node dist/database/seed.js; fi && node dist/main.js",
     "prisma:new": "node --env-file-if-exists=../../.env scripts/new-migration.mjs",
     "seed:demo": "node --env-file-if-exists=../../.env dist/database/seed-demo.js"
   },

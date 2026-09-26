@@ -1,0 +1,106 @@
+# Render Blueprint: the SeShaKart API with PostgreSQL and Redis, for the Netlify
+# storefront. Render → New → Blueprint → pick this repository. Render asks for
+# every value marked "sync: false" and generates the secrets.
+# Guide: docs/DEPLOYMENT.md, "Netlify storefront + API on Render".
+# Plans and prices change; check render.com/pricing before applying.
+
+services:
+  - type: web
+    name: seshakart-api
+    runtime: docker
+    dockerfilePath: ./infra/docker/api.Dockerfile
+    dockerContext: .
+    region: ohio
+    # A paid plan: free services sleep when idle, and the storefront gives up
+    # waiting for a sleeping API ("SeShaKart is taking a short break").
+    plan: starter
+    healthCheckPath: /api/health
+    # Applies pending migrations, creates the default settings and the first admin
+    # (never overwritten; skipped when SEED_ADMIN_EMAIL is empty), then starts.
+    # The script is in apps/api/package.json.
+    dockerCommand: npm run start:release
+    # Product images uploaded in the admin. Without a disk they are lost on every deploy.
+    disk:
+      name: media
+      mountPath: /app/uploads
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: '4000'
+      - key: PORT
+        value: '4000'
+      - key: APP_URL
+        value: https://seshakart.netlify.app
+      - key: WEB_INTERNAL_URL
+        value: https://seshakart.netlify.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: seshakart-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: seshakart-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      # Copy this generated value into Netlify's REVALIDATE_SECRET.
+      - key: REVALIDATE_SECRET
+        generateValue: true
+      # Render's proxy sets X-Forwarded-For. Through Netlify every shopper arrives
+      # from Netlify's servers, so per-visitor rate limits are shared; the higher
+      # global limit keeps a test site usable (see the guide).
+      - key: TRUST_PROXY_HOPS
+        value: '1'
+      - key: RATE_LIMIT_MAX
+        value: '3000'
+      - key: MEDIA_LOCAL_DIR
+        value: /app/uploads
+      # Email (required in production): any SMTP provider, e.g. Brevo, SES, Zoho.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Mobile sign-in codes stay off until an SMS gateway is added.
+      - key: SMS_PROVIDER
+        value: none
+      # Payments: Razorpay test keys (rzp_test_…) are fine for a test site.
+      - key: PAYMENT_PROVIDER
+        value: razorpay
+      - key: PAYMENT_KEY_ID
+        sync: false
+      - key: PAYMENT_KEY_SECRET
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false
+      # First super admin. Remove SEED_ADMIN_PASSWORD after the first deploy.
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+  - type: keyvalue
+    name: seshakart-redis
+    region: ohio
+    plan: free
+    # Only reachable from services in this Render account.
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: seshakart-db
+    databaseName: seshakart
+    user: seshakart
+    region: ohio
+    plan: basic-256mb
+    postgresMajorVersion: '16'

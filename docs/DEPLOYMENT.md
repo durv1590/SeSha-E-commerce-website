@@ -215,6 +215,44 @@ that orders, customers and product images are there. Note how long it took.
 - Patch the OS monthly; update Docker base images with each release (`dc build --pull`).
 - Run `pnpm audit` before each release; review staff accounts and the audit log monthly.
 
+## Netlify storefront + API on Render
+
+Netlify can host only the storefront. The API, PostgreSQL and Redis must run elsewhere. Without
+them the home page shows "SeShaKart is taking a short break". This setup suits a test or demo
+site; for real traffic use the single-server setup above (see the limitations below).
+
+1. **API, database and Redis on Render:** Render → New → **Blueprint** → this repository. It
+   reads [`render.yaml`](../render.yaml) and creates `seshakart-api` (Docker, with a 1 GB disk
+   for product images), `seshakart-db` (PostgreSQL 16) and `seshakart-redis`. Enter the values
+   it asks for: SMTP, Razorpay keys (test keys are fine), `SEED_ADMIN_EMAIL` and
+   `SEED_ADMIN_PASSWORD`. Each start runs `npm run start:release`: migrations, default
+   settings and the first admin, then the API. On another host, use
+   [`deploy/render/api.env.example`](../deploy/render/api.env.example) and that start command.
+2. **Check it:** `https://<api-host>/api/health` returns `"status":"ok"`.
+3. **Storefront on Netlify:** fill in
+   [`deploy/netlify/storefront.env.example`](../deploy/netlify/storefront.env.example)
+   (`API_INTERNAL_URL` = the API's address, `REVALIDATE_SECRET` = the API's generated value) and
+   import it under Site configuration → Environment variables. Then **Deploys → Trigger deploy →
+   Clear cache and deploy site**: the `/api` connection is fixed at build time.
+4. **Razorpay webhook:** `https://<api-host>/api/webhooks/payments/razorpay`, straight to the
+   API.
+5. **Optional demo catalogue:** in the Render Shell of `seshakart-api`, run
+   `ALLOW_DEMO_SEED=true node dist/database/seed-demo.js` (remove it later with `--remove`).
+6. Sign in at `https://seshakart.netlify.app/admin`, change the admin password, then delete
+   `SEED_ADMIN_PASSWORD` on Render.
+
+Limitations of this setup:
+
+- **Shared rate limits:** requests reach the API from Netlify's servers, not the shopper's
+  address, so all shoppers share the per-address limits, including the strict sign-in and
+  code limits. `RATE_LIMIT_MAX=3000` keeps browsing usable; a burst of failed sign-ins can
+  still briefly block sign-in for everyone.
+- **Slower pages:** every page and API call makes an extra hop from Netlify to Render. Netlify
+  runs the storefront's server code in US East (Ohio) by default, so the Blueprint puts the
+  API there too; if you change Netlify's functions region, move the Render services to match.
+- **Cost:** the API needs a paid instance (free ones sleep and the storefront times out
+  waiting). Free Render PostgreSQL databases expire, which is why the Blueprint uses a paid plan.
+
 ## Staging
 
 Use the same compose file on a separate server with `NEXT_PUBLIC_SITE_URL` and `CANONICAL_HOST`
