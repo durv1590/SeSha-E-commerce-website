@@ -12,3 +12,10 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+
+# Security fixes for transitive dependencies (pnpm audit). Remove an entry once the
+# parent package ships the patched version itself.
+overrides:
+  postcss@<8.5.23: ^8.5.28 # via next
+  deepmerge-ts@<8.0.0: ^8.0.2 # via prisma's config loader
+  sharp@<0.35.4: ^0.35.4 # via next (image optimisation)

@@ -6,6 +6,9 @@ import { AppException } from '../common/filters/all-exceptions.filter';
 import { PrismaService } from '../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
+type ImageMetadata = Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>;
+type EncodedImage = { data: Buffer; info: { width: number; height: number; size: number } };
+
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 /** Raster formats only: SVG can carry scripts and is never accepted. */
 const ACCEPTED = new Set(['jpeg', 'png', 'webp', 'avif', 'gif']);
@@ -41,7 +44,7 @@ export class MediaService {
     if (file.size > MAX_UPLOAD_BYTES)
       throw invalid('FILE_TOO_LARGE', 'Images must be 8 MB or smaller.');
 
-    let meta: sharp.Metadata;
+    let meta: ImageMetadata;
     try {
       meta = await sharp(file.buffer, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
     } catch {
@@ -53,7 +56,7 @@ export class MediaService {
     if ((meta.width ?? 0) < minSide || (meta.height ?? 0) < minSide)
       throw invalid('IMAGE_TOO_SMALL', `Images must be at least ${minSide} × ${minSide} pixels.`);
 
-    let out: { data: Buffer; info: sharp.OutputInfo };
+    let out: EncodedImage;
     try {
       const maxSide = opts.maxSide ?? 2000;
       out = await sharp(file.buffer, { limitInputPixels: MAX_INPUT_PIXELS })
