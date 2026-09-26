@@ -15,12 +15,13 @@ const STAR = 'M12 2.5l2.95 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.7l-6.15 3.4 1.4-6.8-5
 
 /** Read-only star rating. Only real, aggregated review data may be passed in. */
 export function Rating({ value, count, size = 'sm', showValue = true, className }: RatingProps) {
-  const id = useId();
+  // SVG url(#…) references need a plain id; React's ids contain characters like «».
+  const id = `rating${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const clamped = Math.max(0, Math.min(5, value));
   const px = size === 'sm' ? 14 : 18;
   const viewWidth = 5 * 24 + 8; // five 24-unit stars with 2-unit gaps
-  // The fill boundary is computed across the whole row (userSpaceOnUse), so 4.3
-  // fills four stars fully and the fifth by 30%.
+  // The fill boundary is measured across the whole row, so 4.3 fills four stars
+  // fully and the fifth by 30%.
   const starIndex = Math.floor(clamped);
   const fillX = starIndex * 26 + (clamped - starIndex) * 24;
   const label =
@@ -41,21 +42,22 @@ export function Rating({ value, count, size = 'sm', showValue = true, className 
         aria-hidden="true"
       >
         <defs>
-          <linearGradient
-            id={id}
-            gradientUnits="userSpaceOnUse"
-            x1="0"
-            y1="0"
-            x2={viewWidth}
-            y2="0"
-          >
-            <stop offset={fillX / viewWidth} stopColor="rgb(var(--color-accent))" />
-            <stop offset={fillX / viewWidth} stopColor="rgb(var(--color-border-strong))" />
-          </linearGradient>
+          <clipPath id={id}>
+            <rect x="0" y="0" width={fillX} height="24" />
+          </clipPath>
         </defs>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <path key={i} d={STAR} transform={`translate(${i * 26} 0)`} fill={`url(#${id})`} />
-        ))}
+        {/* Grey stars, then the accent stars clipped to the rating. The clip lives on an
+            untransformed group, so its width is measured across the whole row. */}
+        <g fill="rgb(var(--color-border-strong))">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <path key={i} d={STAR} transform={`translate(${i * 26} 0)`} />
+          ))}
+        </g>
+        <g fill="rgb(var(--color-accent))" clipPath={`url(#${id})`} data-fill-width={fillX}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <path key={i} d={STAR} transform={`translate(${i * 26} 0)`} />
+          ))}
+        </g>
       </svg>
       {showValue && (
         <span aria-hidden="true" className="text-small font-semibold text-text-primary">

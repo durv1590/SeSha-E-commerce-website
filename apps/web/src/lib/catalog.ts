@@ -9,6 +9,8 @@ import type {
   ProductDetail,
   ProductListResult,
   ProductSummary,
+  ReviewDto,
+  ReviewSummaryDto,
 } from '@seshakart/types';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
@@ -55,6 +57,25 @@ export const getRelated = cache((slug: string) =>
   serverApi<ProductSummary[]>(`/products/${slug}/related`, pub).then(
     (r) => r.data,
     () => [],
+  ),
+);
+
+/** First page of approved reviews and the rating summary (empty if unavailable). */
+export const getReviews = cache((slug: string) =>
+  serverApi<{ summary: ReviewSummaryDto; reviews: ReviewDto[] }>(
+    `/products/${slug}/reviews?pageSize=10`,
+    pub,
+  ).then(
+    (r) => ({ ...r.data, meta: r.meta }),
+    () => ({
+      summary: {
+        average: 0,
+        count: 0,
+        distribution: [0, 0, 0, 0, 0] as ReviewSummaryDto['distribution'],
+      },
+      reviews: [] as ReviewDto[],
+      meta: undefined,
+    }),
   ),
 );
 

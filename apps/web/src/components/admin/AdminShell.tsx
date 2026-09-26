@@ -31,6 +31,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { api } from '@/lib/api/browser';
 import { Logo } from '../brand/Logo';
+import { AlertBell } from './AlertBell';
 import { navFor } from './nav';
 
 const ICONS: Record<string, LucideIcon> = {
@@ -135,6 +136,7 @@ export function AdminShell({ user, children }: { user: MeDto; children: ReactNod
           </button>
           <span className="font-heading text-h5 lg:hidden">Admin</span>
           <div className="ml-auto flex items-center gap-2 text-small">
+            <AlertBell />
             <Link
               href="/"
               target="_blank"

@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductRail } from '@/components/catalog/ProductRail';
 import { ProductHero } from '@/components/product/ProductHero';
-import { getProduct, getRelated } from '@/lib/catalog';
+import { ProductReviews } from '@/components/product/ProductReviews';
+import { getProduct, getRelated, getReviews } from '@/lib/catalog';
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ variant?: string }> };
 
@@ -27,9 +28,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const [product, related, { variant }] = await Promise.all([
+  const [product, related, reviews, { variant }] = await Promise.all([
     getProduct(slug),
     getRelated(slug),
+    getReviews(slug),
     searchParams,
   ]);
   const paragraphs = product.description.split(/\n{2,}/).filter(Boolean);
@@ -111,11 +113,12 @@ export default async function ProductPage({ params, searchParams }: Props) {
             <h2 id="reviews-heading" className="mb-3 text-h3">
               Ratings &amp; reviews
             </h2>
-            <p className="text-text-secondary">
-              {product.ratingCount > 0
-                ? `${product.ratingAvg.toFixed(1)} out of 5 from ${product.ratingCount} verified reviews.`
-                : 'No reviews yet. Customers who buy this product can review it after delivery.'}
-            </p>
+            <ProductReviews
+              slug={product.slug}
+              productId={product.id}
+              productName={product.name}
+              initial={reviews}
+            />
           </section>
         </div>
 

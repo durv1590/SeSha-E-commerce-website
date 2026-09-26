@@ -18,6 +18,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: 'Overview',
     items: [
       { href: '/admin', label: 'Dashboard', icon: 'dashboard', permission: 'dashboard:read' },
+      { href: '/admin/reports', label: 'Reports', icon: 'reports', permission: 'analytics:read' },
     ],
   },
   {
@@ -32,6 +33,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: 'customers:read',
       },
       { href: '/admin/coupons', label: 'Coupons', icon: 'coupons', permission: 'coupons:write' },
+      { href: '/admin/reviews', label: 'Reviews', icon: 'reviews', permission: 'reviews:moderate' },
     ],
   },
   {

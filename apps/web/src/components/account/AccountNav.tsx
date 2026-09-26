@@ -9,6 +9,7 @@ import {
   LogOut,
   MapPin,
   ShieldCheck,
+  Star,
   UserRound,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -16,11 +17,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api/browser';
 import { refreshCartState } from '@/lib/cart/store';
 
-// Reviews join this list in their phase.
 const ITEMS = [
   { href: '/account', label: 'Overview', icon: LayoutDashboard },
   { href: '/account/orders', label: 'Orders', icon: Package },
   { href: '/account/wishlist', label: 'Wishlist', icon: Heart },
+  { href: '/account/reviews', label: 'Reviews', icon: Star },
   { href: '/account/profile', label: 'Profile', icon: UserRound },
   { href: '/account/addresses', label: 'Addresses', icon: MapPin },
   { href: '/account/security', label: 'Security', icon: ShieldCheck },

@@ -144,13 +144,26 @@ describe('DropdownMenu', () => {
 describe('Rating fill', () => {
   it('fills stars proportionally across the row, not per star', () => {
     const { container } = render(<Rating value={4.3} />);
-    const stops = container.querySelectorAll('stop');
-    // 4 full stars (4 × 26 units) + 30% of the fifth (0.3 × 24) over a 128-unit row.
-    expect(Number(stops[0]!.getAttribute('offset'))).toBeCloseTo((4 * 26 + 0.3 * 24) / 128, 5);
-    expect(container.querySelector('linearGradient')).toHaveAttribute(
-      'gradientUnits',
-      'userSpaceOnUse',
-    );
+    // 4 full stars (4 × 26 units) + 30% of the fifth (0.3 × 24).
+    const rect = container.querySelector('clipPath rect')!;
+    expect(Number(rect.getAttribute('width'))).toBeCloseTo(4 * 26 + 0.3 * 24, 5);
+    // The clip must sit on an untransformed group: on a translated star it would be
+    // measured per star and fill every star completely (a bug this test guards).
+    const filled = container.querySelector('g[clip-path]')!;
+    expect(filled.getAttribute('transform')).toBeNull();
+    expect(filled.querySelectorAll('path')).toHaveLength(5);
+    expect(container.querySelectorAll('g')).toHaveLength(2);
+  });
+
+  it('clips nothing for no rating and everything for five', () => {
+    const w = (v: number) =>
+      Number(
+        render(<Rating value={v} />)
+          .container.querySelector('clipPath rect')!
+          .getAttribute('width'),
+      );
+    expect(w(0)).toBe(0);
+    expect(w(5)).toBe(5 * 26);
   });
 });
 
