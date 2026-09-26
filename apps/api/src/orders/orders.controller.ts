@@ -119,19 +119,12 @@ function actor(auth: AuthContext, req: Request) {
 }
 
 /**
- * Staff fulfilment actions (the admin dashboard arrives in Phase 10). Permission-gated
+ * Staff fulfilment actions (the full staff order view is OrdersAdminController). Permission-gated
  * and audit-logged; every status change goes through the order state machine.
  */
 @Controller('admin')
 export class StaffOrdersController {
   constructor(private readonly orders: OrdersService) {}
-
-  @Get('orders/:orderNumber')
-  @RequirePermissions('orders:read')
-  @Header('Cache-Control', 'no-store')
-  detail(@ZodParam('orderNumber', orderNumberSchema) n: string): Promise<OrderDetailDto> {
-    return this.orders.staffDetail(n);
-  }
 
   @Post('orders/:orderNumber/status')
   @HttpCode(HttpStatus.OK)

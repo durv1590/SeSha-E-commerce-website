@@ -470,7 +470,15 @@ export class OrdersService {
     orderNumber: string,
     access: OrderAccess,
   ): Promise<{ filename: string; pdf: Buffer }> {
-    const order = await this.load(orderNumber, access);
+    return this.invoiceFor(await this.load(orderNumber, access));
+  }
+
+  /** Staff copy of the GST invoice (any order that has one). */
+  async staffInvoice(orderNumber: string): Promise<{ filename: string; pdf: Buffer }> {
+    return this.invoiceFor(await this.byNumber(orderNumber));
+  }
+
+  private async invoiceFor(order: FullOrder): Promise<{ filename: string; pdf: Buffer }> {
     if (!order.invoiceNumber)
       throw new AppException(
         HttpStatus.NOT_FOUND,

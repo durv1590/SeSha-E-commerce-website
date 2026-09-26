@@ -1,3 +1,5 @@
+import type { OrderDetailDto } from './orders';
+
 /** Admin contracts. Amounts in paise. */
 
 export interface MediaUploadDto {
@@ -216,4 +218,137 @@ export interface ProductImportResultDto {
   errors: ImportRowIssue[];
   /** Applied only when there are no errors and dryRun is false. */
   applied: boolean;
+}
+
+// ------------------------------------------------------------------ operations
+
+export interface AdminOrderListItemDto {
+  orderNumber: string;
+  placedAt: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  /** Registered customer, if the order wasn't placed as a guest. */
+  userId: string | null;
+  itemCount: number;
+  total: number;
+  status: import('./enums').OrderStatus;
+  statusLabel: string;
+  paymentMethod: import('./enums').PaymentMethod;
+  paymentStatus: import('./enums').PaymentStatus | null;
+  city: string;
+}
+
+export interface AdminOrderDto extends OrderDetailDto {
+  userId: string | null;
+  customer: { id: string; name: string; orderCount: number; status: 'ACTIVE' | 'SUSPENDED' } | null;
+  notes: string | null;
+  payments: {
+    provider: string;
+    method: string | null;
+    status: import('./enums').PaymentStatus;
+    amount: number;
+    reference: string | null;
+    error: string | null;
+    createdAt: string;
+    capturedAt: string | null;
+  }[];
+  /** Refunds with their ids, for completing manual (cash-on-delivery) refunds. */
+  staffRefunds: {
+    id: string;
+    amount: number;
+    status: import('./enums').RefundStatus;
+    manual: boolean;
+    reason: string | null;
+    reference: string | null;
+    actor: string | null;
+    createdAt: string;
+    processedAt: string | null;
+  }[];
+  history: {
+    from: import('./enums').OrderStatus | null;
+    to: import('./enums').OrderStatus;
+    toLabel: string;
+    note: string | null;
+    actor: string | null;
+    at: string;
+  }[];
+  actions: {
+    /** Manual status moves (the rest happen through shipments and payments). */
+    statuses: ('PROCESSING' | 'PACKED')[];
+    canShip: boolean;
+    canAddTrackingEvent: boolean;
+    canCancel: boolean;
+    /** Amount still refundable (paise); 0 when nothing can be refunded. */
+    refundable: number;
+    refundIsManual: boolean;
+  };
+}
+
+export interface AdminReturnListItemDto {
+  id: string;
+  orderNumber: string;
+  type: 'RETURN' | 'REPLACEMENT';
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'RECEIVED' | 'COMPLETED';
+  statusLabel: string;
+  reason: string;
+  units: number;
+  customerName: string;
+  createdAt: string;
+}
+
+export interface CustomerListItemDto {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: 'ACTIVE' | 'SUSPENDED';
+  orderCount: number;
+  /** Confirmed, not cancelled orders (paise). */
+  totalSpent: number;
+  lastOrderAt: string | null;
+  createdAt: string;
+}
+
+export interface CustomerDetailDto extends CustomerListItemDto {
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  marketingOptIn: boolean;
+  lastLoginAt: string | null;
+  addresses: {
+    id: string;
+    name: string;
+    phone: string;
+    line: string;
+    city: string;
+    state: string;
+    pincode: string;
+    isDefault: boolean;
+  }[];
+  recentOrders: AdminOrderListItemDto[];
+  activeSessions: number;
+}
+
+export interface AdminCouponDto {
+  id: string;
+  code: string;
+  description: string | null;
+  type: 'PERCENTAGE' | 'FIXED';
+  value: number;
+  maxDiscount: number | null;
+  minCartValue: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  usageLimit: number | null;
+  usagePerUser: number;
+  usedCount: number;
+  firstOrderOnly: boolean;
+  productIds: string[];
+  categoryIds: string[];
+  isActive: boolean;
+  /** Derived: live, scheduled, expired, exhausted or inactive. */
+  state: 'live' | 'scheduled' | 'expired' | 'exhausted' | 'inactive';
+  /** Total discount given (paise). */
+  discountGiven: number;
+  createdAt: string;
 }
