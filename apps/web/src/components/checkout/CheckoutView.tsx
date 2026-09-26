@@ -27,6 +27,7 @@ import { saveOrderToken } from '@/lib/checkout/order-tokens';
 import { ProductImage } from '../cards/ProductImage';
 import { AddressFields, EMPTY_ADDRESS, type AddressValues } from './AddressFields';
 import { usePayment } from './usePayment';
+import { track } from '@/lib/analytics/track';
 
 type Delivery = 'STANDARD' | 'EXPRESS';
 type Payment = 'PREPAID' | 'COD';
@@ -95,6 +96,7 @@ export function CheckoutView() {
   const [placing, setPlacing] = useState(false);
   const key = useRef<string>('');
   const formRef = useRef<HTMLFormElement>(null);
+  const checkoutTracked = useRef(false);
 
   // Who is checking out.
   useEffect(() => {
@@ -111,6 +113,26 @@ export function CheckoutView() {
       () => setUser(null),
     );
   }, []);
+
+  // Analytics: once per visit, when the first summary arrives.
+  useEffect(() => {
+    if (!quote || checkoutTracked.current || !quote.cart.items.length) return;
+    checkoutTracked.current = true;
+    track({
+      name: 'begin_checkout',
+      value: quote.totals.subtotal - quote.totals.couponDiscount,
+      coupon: quote.cart.coupon?.valid ? quote.cart.coupon.code : null,
+      items: quote.cart.items
+        .filter((i) => !i.savedForLater)
+        .map((i) => ({
+          id: i.slug,
+          name: i.name,
+          variant: i.variantName,
+          price: i.price,
+          quantity: i.quantity,
+        })),
+    });
+  }, [quote]);
 
   // The delivery PIN code decides express and cash-on-delivery availability.
   const pincode =

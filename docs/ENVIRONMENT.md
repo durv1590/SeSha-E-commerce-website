@@ -12,13 +12,16 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## Web (`apps/web`)
 
-| Variable                    | Required | Default                     | Description                                                                               |
-| --------------------------- | -------- | --------------------------- | ----------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`      | prod     | `https://www.seshakart.com` | Canonical public URL, used in metadata, sitemap and canonical links.                      |
-| `API_INTERNAL_URL`          | yes      | `http://localhost:4000`     | Server-side URL of the API. It is never sent to browsers.                                 |
-| `CANONICAL_HOST`            | no       | `www.seshakart.com`         | In production, requests to the apex domain get a 308 redirect to this host.               |
-| `REVALIDATE_SECRET`         | prod     | –                           | Must equal the API's value; authorises cache refreshes after admin changes.               |
-| `ENABLE_DESIGN_SYSTEM_PAGE` | no       | `false`                     | Serves `/design-system` in production builds (for staging). It must be set at build time. |
+| Variable                    | Required | Default                     | Description                                                                                                                                 |
+| --------------------------- | -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`      | prod     | `https://www.seshakart.com` | Canonical public URL, used in metadata, sitemap and canonical links. Set at build time.                                                     |
+| `API_INTERNAL_URL`          | yes      | `http://localhost:4000`     | Server-side URL of the API. It is never sent to browsers.                                                                                   |
+| `CANONICAL_HOST`            | no       | `www.seshakart.com`         | In production, requests to the apex domain get a 308 redirect to this host. Only an https site on this host is indexable by search engines. |
+| `ALLOW_INDEXING`            | no       | (on for the canonical host) | `false` closes the production site to search engines too (robots.txt, noindex). See SEO_ANALYTICS.md.                                       |
+| `NEXT_PUBLIC_ANALYTICS_ID`  | no       | (off)                       | Google Analytics 4 measurement ID (`G-…`). Loads only after cookie consent. Build **and** runtime.                                          |
+| `NEXT_PUBLIC_META_PIXEL_ID` | no       | (off)                       | Meta Pixel ID (digits). Loads only after marketing consent. Build **and** runtime.                                                          |
+| `REVALIDATE_SECRET`         | prod     | –                           | Must equal the API's value; authorises cache refreshes after admin changes.                                                                 |
+| `ENABLE_DESIGN_SYSTEM_PAGE` | no       | `false`                     | Serves `/design-system` in production builds (for staging). It must be set at build time.                                                   |
 
 ## API (`apps/api`)
 
@@ -68,7 +71,7 @@ put a secret in a `NEXT_PUBLIC_` variable.**
 
 ## Planned (added with their phases)
 
-`S3_*`, `MEDIA_BASE_URL`, `NEXT_PUBLIC_ANALYTICS_ID`, `NEXT_PUBLIC_META_PIXEL_ID`.
+`S3_*`, `MEDIA_BASE_URL`.
 Each will be documented here, with its validation rules, when its module is implemented.
 
 ## Store and shipping settings (admin-editable)

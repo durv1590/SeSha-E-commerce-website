@@ -11,8 +11,24 @@ import { hasSession } from '@/lib/api/browser';
 import { ApiError } from '@/lib/api/errors';
 import { orderApi } from '@/lib/checkout/api';
 import { usePayment } from './usePayment';
+import { track } from '@/lib/analytics/track';
 
 const POLL_MS = 2_500;
+const CONFIRMED = ['CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+const isConfirmed = (status: string) => CONFIRMED.includes(status);
+const TRACKED_KEY = 'sk_tracked_orders';
+
+/** Records that this order's purchase was reported; false if it already was. */
+function markPurchaseTracked(orderNumber: string): boolean {
+  try {
+    const seen: string[] = JSON.parse(localStorage.getItem(TRACKED_KEY) ?? '[]');
+    if (seen.includes(orderNumber)) return false;
+    localStorage.setItem(TRACKED_KEY, JSON.stringify([...seen, orderNumber].slice(-20)));
+    return true;
+  } catch {
+    return true; // storage blocked: report once per page view
+  }
+}
 const MAX_POLLS = 8;
 
 function timeLeft(iso: string | null): string | null {
@@ -35,6 +51,27 @@ export function OrderResult({ mode }: { mode: 'success' | 'failed' }) {
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const polls = useRef(0);
+
+  // Analytics: one purchase per order, even if this page is reloaded or reopened.
+  useEffect(() => {
+    if (mode !== 'success' || !order || !isConfirmed(order.status)) return;
+    if (!markPurchaseTracked(order.orderNumber)) return;
+    track({
+      name: 'purchase',
+      orderNumber: order.orderNumber,
+      value: order.totals.grandTotal,
+      shipping: order.totals.shippingFee + order.totals.codFee,
+      tax: order.totals.taxTotal,
+      coupon: order.couponCode,
+      items: order.items.map((i) => ({
+        id: i.slug ?? i.sku,
+        name: i.name,
+        variant: i.variantName || null,
+        price: i.unitPrice,
+        quantity: i.quantity,
+      })),
+    });
+  }, [mode, order]);
 
   const load = useCallback(async () => {
     try {
@@ -94,14 +131,7 @@ export function OrderResult({ mode }: { mode: 'success' | 'failed' }) {
   if (!order)
     return <Skeleton className="h-96 w-full rounded-card" aria-label="Loading your order" />;
 
-  const confirmed = [
-    'CONFIRMED',
-    'PROCESSING',
-    'PACKED',
-    'SHIPPED',
-    'OUT_FOR_DELIVERY',
-    'DELIVERED',
-  ].includes(order.status);
+  const confirmed = isConfirmed(order.status);
   const pending = order.status === 'PAYMENT_PENDING';
   const cancelled = order.status === 'CANCELLED';
   const a = order.shippingAddress;

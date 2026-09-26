@@ -171,8 +171,11 @@ approved reviews only.
 > privacy policy and terms checked by a legal adviser, before publishing.
 
 - **SEO**: override the title, description or sharing image of any store page (for example `/`
-  or `/deals`), or hide a page from search engines. Products, categories and brands have their
-  own SEO fields in their editors.
+  or `/deals`), or hide a page from search engines (it also leaves the sitemap). Products,
+  categories and brands have their own SEO fields in their editors. Live products, categories
+  and brands with products, and published pages are added to the sitemap automatically.
+  Analytics and cookie settings are set up by your developer: see
+  [SEO_ANALYTICS.md](SEO_ANALYTICS.md).
 
 Changes to products, banners, pages, SEO and settings show on the store straight away.
 

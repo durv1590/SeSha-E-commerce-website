@@ -1,6 +1,7 @@
 import { Mail, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { getPages } from '@/lib/content/api';
+import { CookieSettingsButton } from '@/components/analytics/CookieSettingsButton';
 import { formatPhone, getPublicSettings } from '@/lib/settings/public';
 import { Logo } from '../brand/Logo';
 
@@ -79,9 +80,12 @@ export async function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-text-inverse/15">
-        <p className="container-page py-4 text-caption text-text-inverse/70">
-          © {new Date().getFullYear()} {s.legalName} · All rights reserved.
-        </p>
+        <div className="container-page flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-4 text-caption text-text-inverse/70">
+          <p>
+            © {new Date().getFullYear()} {s.legalName} · All rights reserved.
+          </p>
+          <CookieSettingsButton className="inline-flex min-h-6 items-center text-text-inverse/85 underline hover:text-accent" />
+        </div>
       </div>
     </footer>
   );

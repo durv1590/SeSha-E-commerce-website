@@ -14,7 +14,8 @@ import {
 import { BadgeCheck, RotateCcw, ShoppingCart, Truck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { track } from '@/lib/analytics/track';
 import { ApiError } from '@/lib/api/errors';
 import { addToCart } from '@/lib/cart/store';
 import { WishlistButton } from '../cart/WishlistButton';
@@ -41,6 +42,22 @@ export function ProductHero({
     product.variants.find((v) => v.id === product.defaultVariantId) ??
     product.variants[0]!;
   const [variant, setVariant] = useState<VariantDto>(initial);
+  useEffect(() => {
+    track({
+      name: 'view_item',
+      item: {
+        id: product.slug,
+        name: product.name,
+        variant: product.hasMultipleVariants ? initial.name : null,
+        brand: product.brand?.name,
+        category: product.category.name,
+        price: initial.price,
+        quantity: 1,
+      },
+    });
+    // One view per product page, not per variant switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.slug]);
   const [qty, setQty] = useState(1);
   const [busy, setBusy] = useState<'add' | 'buy' | null>(null);
   const { toast } = useToast();

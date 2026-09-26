@@ -124,12 +124,28 @@ private, no-store`.
 - **Web:**
   - CSP: `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`,
     `form-action 'self'`. The only third-party origins are Razorpay Checkout's: its script
-    (`checkout.razorpay.com`), its payment frame and the endpoints it calls (tested).
+    (`checkout.razorpay.com`), its payment frame and the endpoints it calls (tested), plus
+    Google Analytics' and the Meta Pixel's script and collection origins **only when** their
+    IDs are configured (tested). Their tags load only after cookie consent.
   - `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and COOP.
   - HSTS (2 years, preload) and `upgrade-insecure-requests` whenever the site URL is https.
 - **Known trade-off:** `script-src 'unsafe-inline'` is required by Next.js inline bootstrap
   scripts unless every page uses per-request nonces, which disables static rendering and CDN
   caching. It will be revisited in Phase 12.
+
+## Privacy and analytics
+
+- Optional trackers (GA4, Meta Pixel) load only after the visitor opts in to that purpose;
+  withdrawing consent deletes their cookies and reloads the page. The admin never loads them.
+- No personal data is sent: page addresses are reduced to listing/search/campaign parameters,
+  order numbers in paths are masked, events carry product slugs and amounts only, and the
+  Meta Pixel sends nothing from pages whose address has a token-like parameter. Google signals,
+  ad personalisation and Meta's automatic event and advanced-matching collection are off.
+- JSON-LD is serialised with `<`, `>`, `&` and line separators escaped, so catalogue text can't
+  break out of its script element (tested).
+- Non-production hosts are closed to search engines (robots.txt and `noindex`).
+
+See [SEO_ANALYTICS.md](SEO_ANALYTICS.md).
 
 ## Network and deployment assumptions
 

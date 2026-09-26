@@ -6,8 +6,14 @@ WORKDIR /repo
 
 FROM base AS build
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* values are compiled into the browser bundle and the security headers,
+# so they are build arguments. Leave the tracker IDs empty to build without analytics.
 ARG NEXT_PUBLIC_SITE_URL=https://www.seshakart.com
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_ANALYTICS_ID=
+ARG NEXT_PUBLIC_META_PIXEL_ID=
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_ANALYTICS_ID=$NEXT_PUBLIC_ANALYTICS_ID \
+    NEXT_PUBLIC_META_PIXEL_ID=$NEXT_PUBLIC_META_PIXEL_ID
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm build:packages && pnpm --filter @seshakart/web build

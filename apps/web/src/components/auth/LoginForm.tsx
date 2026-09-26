@@ -9,6 +9,7 @@ import { api } from '@/lib/api/browser';
 import { useForm } from '@/lib/forms/use-form';
 import { PasswordInput } from './PasswordInput';
 import { ResendTimer } from './ResendTimer';
+import { track } from '@/lib/analytics/track';
 import { refreshCartState } from '@/lib/cart/store';
 
 type Mode = 'password' | 'otp';
@@ -18,6 +19,7 @@ export function LoginForm({ next }: { next: string }) {
   const [mode, setMode] = useState<Mode>('password');
 
   const onSignedIn = () => {
+    track({ name: 'login' });
     router.replace(next);
     router.refresh();
   };

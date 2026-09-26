@@ -97,6 +97,13 @@ You can cancel an order from your account until it is packed. Paid orders cancel
 - To send order updates and, only if you agree, offers
 - To prevent fraud and keep the service secure
 
+## Cookies and analytics
+Essential cookies keep you signed in, hold your cart and protect forms; the store can't work without them. Only if you agree (see "Cookie settings" at the bottom of every page) we also use:
+- **Analytics** (Google Analytics): which pages and products are viewed, without your name, email or phone number
+- **Marketing** (Meta Pixel): which of our Facebook and Instagram ads lead to purchases
+
+You can change or withdraw your choice at any time. Remove any tool you don't use from this section before publishing.
+
 ## Sharing
 We share only what is needed with couriers (delivery details) and our payment partner. We don't sell your data.
 

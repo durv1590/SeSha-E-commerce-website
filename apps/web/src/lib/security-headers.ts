@@ -4,7 +4,8 @@
  * CSP note: Next.js injects inline bootstrap scripts, so `script-src` needs
  * 'unsafe-inline' unless every page is rendered with a per-request nonce (which
  * disables static rendering and CDN caching). We accept that trade-off and keep
- * every other directive strict. Analytics origins are added in their phase.
+ * every other directive strict. Analytics origins are added only for the tools that
+ * are configured (and the tags themselves load only after cookie consent).
  * See docs/SECURITY.md.
  */
 
@@ -17,18 +18,48 @@ export const PAYMENT_ORIGINS = {
   frame: ['https://api.razorpay.com', 'https://checkout.razorpay.com'],
   connect: ['https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
 };
+/** Google Analytics 4 and Meta Pixel endpoints (per each vendor's CSP guidance). */
+export const ANALYTICS_ORIGINS = {
+  ga: {
+    script: ['https://*.googletagmanager.com'],
+    connect: [
+      'https://*.google-analytics.com',
+      'https://*.analytics.google.com',
+      'https://*.googletagmanager.com',
+    ],
+  },
+  meta: {
+    script: ['https://connect.facebook.net'],
+    connect: ['https://www.facebook.com', 'https://connect.facebook.net'],
+  },
+};
+
 export interface HeaderOptions {
   isDev: boolean;
   /** Site is served over HTTPS: enables HSTS and upgrade-insecure-requests. */
   https?: boolean;
   apiOrigin?: string;
+  /** Configured trackers; their origins are allowed only when set. */
+  analytics?: { ga?: boolean; meta?: boolean };
 }
 
 export function buildContentSecurityPolicy(opts: HeaderOptions): string {
-  const connect = ["'self'", opts.apiOrigin, ...PAYMENT_ORIGINS.connect].filter(Boolean).join(' ');
+  const tools = [
+    opts.analytics?.ga && ANALYTICS_ORIGINS.ga,
+    opts.analytics?.meta && ANALYTICS_ORIGINS.meta,
+  ].filter((t): t is (typeof ANALYTICS_ORIGINS)['ga'] => Boolean(t));
+  const connect = [
+    "'self'",
+    opts.apiOrigin,
+    ...PAYMENT_ORIGINS.connect,
+    ...tools.flatMap((t) => t.connect),
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const scripts = [...PAYMENT_ORIGINS.script, ...tools.flatMap((t) => t.script)].join(' ');
   const directives: Record<string, string> = {
     'default-src': "'self'",
-    'script-src': `'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} ${PAYMENT_ORIGINS.script.join(' ')}`,
+    'script-src': `'self' 'unsafe-inline'${opts.isDev ? " 'unsafe-eval'" : ''} ${scripts}`,
     'style-src': "'self' 'unsafe-inline'",
     'img-src': "'self' data: blob: https:",
     'font-src': "'self' data:",

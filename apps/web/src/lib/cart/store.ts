@@ -3,6 +3,7 @@
 import type { CartDto, CartSummaryDto } from '@seshakart/types';
 import { useSyncExternalStore } from 'react';
 import { api, hasSession } from '../api/browser';
+import { track } from '../analytics/track';
 
 /**
  * Client-side mirror of the shopper's cart count and wishlist, for header badges
@@ -100,6 +101,18 @@ export function cartChanged(cart: CartDto) {
 export async function addToCart(variantId: string, quantity = 1): Promise<CartDto> {
   const cart = await api.post<CartDto>('/cart/items', { variantId, quantity });
   cartChanged(cart);
+  const line = cart.items.find((i) => i.variantId === variantId);
+  if (line)
+    track({
+      name: 'add_to_cart',
+      item: {
+        id: line.slug,
+        name: line.name,
+        variant: line.variantName,
+        price: line.price,
+        quantity,
+      },
+    });
   return cart;
 }
 

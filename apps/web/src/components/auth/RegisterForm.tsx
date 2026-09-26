@@ -7,6 +7,7 @@ import { api } from '@/lib/api/browser';
 import { useForm } from '@/lib/forms/use-form';
 import { PasswordInput } from './PasswordInput';
 import { refreshCartState } from '@/lib/cart/store';
+import { track } from '@/lib/analytics/track';
 
 export function RegisterForm({ next }: { next: string }) {
   const router = useRouter();
@@ -24,6 +25,7 @@ export function RegisterForm({ next }: { next: string }) {
       noValidate
       onSubmit={form.handleSubmit(async () => {
         await api.post('/auth/register', form.values);
+        track({ name: 'sign_up' });
         refreshCartState();
         router.replace(next);
         router.refresh();

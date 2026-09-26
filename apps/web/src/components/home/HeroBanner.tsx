@@ -6,7 +6,8 @@ const THEMES = {
   PRIMARY: {
     box: 'bg-primary',
     title: 'text-text-inverse',
-    text: 'text-text-inverse/90',
+    // White on primary blue is 4.6:1; any transparency drops it below AA.
+    text: 'text-text-inverse',
     cta: 'accent' as const,
   },
   NAVY: {

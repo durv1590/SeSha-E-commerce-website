@@ -37,7 +37,14 @@ services:
       redis: { condition: service_started }
     restart: unless-stopped
   web:
-    build: { context: .., dockerfile: infra/docker/web.Dockerfile }
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      # Compiled into the bundle: pass them when building, e.g. `--env-file ../.env.production`.
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://www.seshakart.com}
+        NEXT_PUBLIC_ANALYTICS_ID: ${NEXT_PUBLIC_ANALYTICS_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${NEXT_PUBLIC_META_PIXEL_ID:-}
     env_file: ${ENV_FILE:-../.env.production}
     environment:
       API_INTERNAL_URL: http://api:4000

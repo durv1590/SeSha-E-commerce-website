@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { Providers } from '@/components/Providers';
+import { Analytics } from '@/components/analytics/Analytics';
 
 // The header/footer show live, admin-managed data (categories, settings), so shop pages
 // render per request. API responses are cached (Next data cache + API Redis), keeping
@@ -18,6 +19,7 @@ export default function ShopLayout({ children }: { children: ReactNode }) {
         </main>
         <SiteFooter />
       </div>
+      <Analytics />
     </Providers>
   );
 }

@@ -9,7 +9,8 @@ const themes: Record<OfferTheme, { box: string; title: string; text: string; cta
   primary: {
     box: 'bg-primary',
     title: 'text-text-inverse',
-    text: 'text-text-inverse/90',
+    // White on primary blue is 4.6:1; any transparency drops it below AA.
+    text: 'text-text-inverse',
     cta: 'bg-accent text-navy',
   },
   navy: {

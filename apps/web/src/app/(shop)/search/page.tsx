@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/catalog/Breadcrumbs';
 import { ProductListing } from '@/components/catalog/ProductListing';
 import { getCategoryTree, getPopularSearches } from '@/lib/catalog';
 import type { RawSearchParams } from '@/lib/listing-params';
+import { TrackSearch } from '@/components/analytics/TrackSearch';
 
 type Props = { searchParams: Promise<RawSearchParams> };
 
@@ -101,6 +102,7 @@ export default async function Page({ searchParams }: Props) {
       <div className="container-page pt-4">
         <Breadcrumbs items={[{ name: 'Home', href: '/' }, { name: 'Search' }]} />
       </div>
+      <TrackSearch query={q} />
       <div className="pt-4">
         <ProductListing
           title={`Results for “${q}”`}

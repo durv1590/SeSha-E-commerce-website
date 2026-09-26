@@ -81,16 +81,17 @@ Indian address fields: `name`, `phone` (10-digit mobile), `line1`, `line2?`, `la
 
 ### Catalogue (public, CDN-cacheable: `Cache-Control: public, max-age=60, stale-while-revalidate=300`)
 
-| Method | Path                        | Description                                                                                                                                                             |
-| ------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/home`                     | Homepage: active hero and promo banners (within their date window), featured categories, admin-configured product sections (empty ones are omitted) and featured brands |
-| GET    | `/categories`               | Active category tree (3 levels). Inactive categories hide their whole subtree.                                                                                          |
-| GET    | `/categories/:slug`         | Category detail with breadcrumbs, children and SEO copy                                                                                                                 |
-| GET    | `/brands` · `/brands/:slug` | Active brands, or one brand                                                                                                                                             |
-| GET    | `/products`                 | Listing: filters, sort, pagination and facets (below)                                                                                                                   |
-| GET    | `/products/:slug`           | Product detail: variants with per-variant availability, images, specifications, policies and breadcrumbs. Drafts and archived products return 404.                      |
-| GET    | `/products/:slug/related`   | Up to 12 products from the same category                                                                                                                                |
-| GET    | `/media/*`                  | Stored images (local media driver): immutable caching and `CSP: sandbox`                                                                                                |
+| Method | Path                        | Description                                                                                                                                                                                                              |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/home`                     | Homepage: active hero and promo banners (within their date window), featured categories, admin-configured product sections (empty ones are omitted) and featured brands                                                  |
+| GET    | `/categories`               | Active category tree (3 levels). Inactive categories hide their whole subtree.                                                                                                                                           |
+| GET    | `/categories/:slug`         | Category detail with breadcrumbs, children and SEO copy                                                                                                                                                                  |
+| GET    | `/brands` · `/brands/:slug` | Active brands, or one brand                                                                                                                                                                                              |
+| GET    | `/products`                 | Listing: filters, sort, pagination and facets (below)                                                                                                                                                                    |
+| GET    | `/products/:slug`           | Product detail: variants with per-variant availability, images, specifications, policies and breadcrumbs. Drafts and archived products return 404.                                                                       |
+| GET    | `/products/:slug/related`   | Up to 12 products from the same category                                                                                                                                                                                 |
+| GET    | `/media/*`                  | Stored images (local media driver): immutable caching and `CSP: sandbox`                                                                                                                                                 |
+| GET    | `/sitemap`                  | Sitemap feed: `{ products: {slug, updatedAt, images[]}[], categories, brands, pages }`. Live products in visible categories (max 45,000), visible categories and brands with at least one live product, published pages. |
 
 **Listing query** (`/products`). The same parameters appear in storefront URLs:
 
