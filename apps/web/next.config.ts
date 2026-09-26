@@ -28,6 +28,9 @@ const canonicalHost = process.env.CANONICAL_HOST ?? 'www.seshakart.com';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // A separate build folder, e.g. for end-to-end tests: the /api rewrite below is fixed at
+  // build time, so the e2e build points at the e2e API without touching .next.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   outputFileTracingRoot: path.join(__dirname, '../..'),
   poweredByHeader: false,
   reactStrictMode: true,

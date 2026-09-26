@@ -14,6 +14,7 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm build:packages && pnpm -r typecheck",
     "test": "pnpm build:packages && pnpm -r test",
+    "test:e2e": "pnpm --filter @seshakart/e2e e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",

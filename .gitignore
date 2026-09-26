@@ -4,6 +4,7 @@ node_modules/
 # builds
 dist/
 .next/
+.next-e2e/
 out/
 *.tsbuildinfo
 next-env.d.ts

@@ -1,6 +1,7 @@
 node_modules
 dist
 .next
+.next-e2e
 coverage
 pnpm-lock.yaml
 docs/brand/brand-identity-brief.md
